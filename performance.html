@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Performance - Maharaja College</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="dashboard">
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2 id="portalTitle">📚 Portal</h2>
+                <button class="close-btn" id="closeSidebar">×</button>
+            </div>
+            <ul class="nav-menu" id="navMenu"></ul>
+        </nav>
+        <main class="main-content">
+            <header class="top-bar">
+                <button class="menu-btn" id="menuBtn">☰</button>
+                <h1>📈 Performance</h1>
+                <div class="user-info">
+                    <span id="userName">User</span>
+                </div>
+            </header>
+            <div class="content">
+                <div id="performanceContent"></div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/dataHandler.js"></script>
+    <script>
+        const user = DataHandler.getCurrentUser();
+        if (!user) window.location.href = 'index.html';
+        
+        const isTeacher = user.type === 'teacher' || user.type === 'admin';
+        document.getElementById('portalTitle').textContent = isTeacher ? '👨‍🏫 Teacher Portal' : '📚 Student Portal';
+        document.getElementById('userName').textContent = user.name;
+        
+        const navMenu = document.getElementById('navMenu');
+        const dashboardLink = isTeacher ? 'teacherDashboard.html' : 'studentDashboard.html';
+        navMenu.innerHTML = `
+            <li><a href="${dashboardLink}">📊 Dashboard</a></li>
+            <li><a href="materials.html">📚 Materials</a></li>
+            <li><a href="tests.html">📝 Tests</a></li>
+            <li><a href="performance.html" class="active">📈 Performance</a></li>
+            <li><a href="notices.html">📢 Notices</a></li>
+            <li><a href="chat.html">💬 Group Chat</a></li>
+            <li><a href="#" id="logoutBtn">🚪 Logout</a></li>
+        `;
+        
+        document.getElementById('logoutBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            DataHandler.logout();
+            window.location.href = 'index.html';
+        });
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const testId = urlParams.get('testId');
+        
+        function loadPerformance() {
+            const tests = DataHandler.getTests();
+            const submissions = DataHandler.getSubmissions();
+            const users = DataHandler.getUsers();
+            const container = document.getElementById('performanceContent');
+            
+            if (isTeacher) {
+                if (testId) {
+                    // Show specific test results
+                    const test = tests.find(t => t.id === testId);
+                    const testSubmissions = submissions.filter(s => s.testId === testId);
+                    
+                    container.innerHTML = `
+                        <div class="section">
+                            <div class="section-header">
+                                <h2>${test.title} - Results</h2>
+                                <button class="btn btn-secondary" onclick="window.location.href='performance.html'">📋 Back to All</button>
+                            </div>
+                            
+                            <div class="stats-grid">
+                                <div class="stat-card">
+                                    <h3>Total Attempts</h3>
+                                    <p class="stat-number">${testSubmissions.length}</p>
+                                </div>
+                                <div class="stat-card">
+                                    <h3>Average Score</h3>
+                                    <p class="stat-number">
+                                        ${testSubmissions.length > 0 ? 
+                                            (testSubmissions.reduce((acc, s) => acc + parseFloat(s.percentage), 0) / testSubmissions.length).toFixed(2) : 
+                                            0}%
+                                    </p>
+                                </div>
+                                <div class="stat-card">
+                                    <h3>Highest Score</h3>
+                                    <p class="stat-number">
+                                        ${testSubmissions.length > 0 ? 
+                                            Math.max(...testSubmissions.map(s => parseFloat(s.percentage))).toFixed(2) : 
+                                            0}%
+                                    </p>
+                                </div>
+                                <div class="stat-card">
+                                    <h3>Lowest Score</h3>
+                                    <p class="stat-number">
+                                        ${testSubmissions.length > 0 ? 
+                                            Math.min(...testSubmissions.map(s => parseFloat(s.percentage))).toFixed(2) : 
+                                            0}%
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <table class="performance-table">
+                                <thead>
+                                    <tr>
+                                        <th>Student Name</th>
+                                        <th>Roll Number</th>
+                                        <th>Score</th>
+                                        <th>Percentage</th>
+                                        <th>Time Spent</th>
+                                        <th>Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${testSubmissions.map(s => {
+                                        const student = users.find(u => u.id === s.studentId);
+                                        const timeSpent = `${Math.floor(s.timeSpent / 60)}m ${s.timeSpent % 60}s`;
+                                        return `
+                                            <tr>
+                                                <td>${student ? student.name : 'Unknown'}</td>
+                                                <td>${student ? student.rollNumber : 'N/A'}</td>
+                                                <td>${s.score}/${s.totalQuestions}</td>
+                                                <td>${s.percentage}%</td>
+                                                <td>${timeSpent}</td>
+                                                <td>${new Date(s.submittedAt).toLocaleString()}</td>
+                                            </tr>
+                                        `;
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                } else {
+                    // Show all tests performance overview
+                    const testStats = tests.map(test => {
+                        const testSubs = submissions.filter(s => s.testId === test.id);
+                        const avgScore = testSubs.length > 0 
+                            ? (testSubs.reduce((acc, s) => acc + parseFloat(s.percentage), 0) / testSubs.length).toFixed(2)
+                            : 0;
+                        return { test, attempts: testSubs.length, avgScore };
+                    });
+                    
+                    container.innerHTML = `
+                        <div class="section">
+                            <h2>📊 All Tests Performance</h2>
+                            <div class="stats-grid">
+                                ${testStats.map(stat => `
+                                    <div class="stat-card clickable" onclick="window.location.href='performance.html?testId=${stat.test.id}'">
+                                        <h3>${stat.test.title}</h3>
+                                        <p class="stat-number">${stat.attempts}</p>
+                                        <p>Attempts</p>
+                                        <p class="stat-number">${stat.avgScore}%</p>
+                                        <p>Avg Score</p>
+                                        <small>📚 ${stat.test.subject}</small>
+                                        <small>Click to view details</small>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+            } else {
+                // Student view
+                const mySubmissions = submissions.filter(s => s.studentId === user.id);
+                
+                if (mySubmissions.length === 0) {
+                    container.innerHTML = `
+                        <div class="section">
+                            <div class="empty-state">
+                                <div class="empty-icon">📝</div>
+                                <h3>No Test Attempts Yet</h3>
+                                <p>Start taking tests to see your performance analytics!</p>
+                                <a href="tests.html" class="btn btn-primary">📝 Take a Test</a>
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const avgPercentage = (mySubmissions.reduce((acc, s) => acc + parseFloat(s.percentage), 0) / mySubmissions.length).toFixed(2);
+                const bestScore = Math.max(...mySubmissions.map(s => parseFloat(s.percentage))).toFixed(2);
+                const totalQuestions = mySubmissions.reduce((acc, s) => acc + s.totalQuestions, 0);
+                const correctAnswers = mySubmissions.reduce((acc, s) => acc + s.score, 0);
+                
+                container.innerHTML = `
+                    <div class="section">
+                        <h2>📈 Your Performance Overview</h2>
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <h3>Tests Attempted</h3>
+                                <p class="stat-number">${mySubmissions.length}</p>
+                            </div>
+                            <div class="stat-card">
+                                <h3>Average Score</h3>
+                                <p class="stat-number">${avgPercentage}%</p>
+                            </div>
+                            <div class="stat-card">
+                                <h3>Best Score</h3>
+                                <p class="stat-number">${bestScore}%</p>
+                            </div>
+                            <div class="stat-card">
+                                <h3>Accuracy</h3>
+                                <p class="stat-number">${((correctAnswers / totalQuestions) * 100).toFixed(2)}%</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="section">
+                        <h2>📋 Test History</h2>
+                        <table class="performance-table">
+                            <thead>
+                                <tr>
+                                    <th>Test Name</th>
+                                    <th>Subject</th>
+                                    <th>Score</th>
+                                    <th>Percentage</th>
+                                    <th>Time Spent</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${mySubmissions.map(s => {
+                                    const test = tests.find(t => t.id === s.testId);
+                                    const timeSpent = `${Math.floor(s.timeSpent / 60)}m ${s.timeSpent % 60}s`;
+                                    return `
+                                        <tr>
+                                            <td>${test ? test.title : 'Unknown Test'}</td>
+                                            <td>${test ? test.subject : 'N/A'}</td>
+                                            <td>${s.score}/${s.totalQuestions}</td>
+                                            <td>
+                                                <span class="score-badge ${parseFloat(s.percentage) >= 70 ? 'high' : parseFloat(s.percentage) >= 50 ? 'medium' : 'low'}">
+                                                    ${s.percentage}%
+                                                </span>
+                                            </td>
+                                            <td>${timeSpent}</td>
+                                            <td>${new Date(s.submittedAt).toLocaleDateString()}</td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            }
+        }
+        
+        document.getElementById('menuBtn').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.add('active');
+        });
+        
+        document.getElementById('closeSidebar').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.remove('active');
+        });
+        
+        // Add CSS for performance styles
+        const style = document.createElement('style');
+        style.textContent = `
+            .empty-state {
+                text-align: center;
+                padding: 60px 20px;
+            }
+            .empty-icon {
+                font-size: 64px;
+                margin-bottom: 20px;
+                opacity: 0.5;
+            }
+            .score-badge {
+                padding: 4px 8px;
+                border-radius: 12px;
+                font-size: 12px;
+                font-weight: bold;
+            }
+            .score-badge.high {
+                background: #d4edda;
+                color: #155724;
+            }
+            .score-badge.medium {
+                background: #fff3cd;
+                color: #856404;
+            }
+            .score-badge.low {
+                background: #f8d7da;
+                color: #721c24;
+            }
+        `;
+        document.head.appendChild(style);
+        
+        loadPerformance();
+    </script>
+</body>
+</html>

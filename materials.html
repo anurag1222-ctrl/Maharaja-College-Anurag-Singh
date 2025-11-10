@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study Materials - Maharaja College</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="dashboard">
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2 id="portalTitle">📚 Portal</h2>
+                <button class="close-btn" id="closeSidebar">×</button>
+            </div>
+            <ul class="nav-menu" id="navMenu"></ul>
+        </nav>
+        <main class="main-content">
+            <header class="top-bar">
+                <button class="menu-btn" id="menuBtn">☰</button>
+                <h1>📚 Study Materials</h1>
+                <div class="user-info">
+                    <span id="userName">User</span>
+                </div>
+            </header>
+            <div class="content">
+                <!-- Upload Section for Teachers -->
+                <div id="uploadSection" style="display:none;" class="section">
+                    <h2>📤 Upload New Material</h2>
+                    <form id="uploadForm" class="form">
+                        <div class="form-group">
+                            <label>📝 Title</label>
+                            <input type="text" id="materialTitle" required placeholder="Enter material title">
+                        </div>
+                        <div class="form-group">
+                            <label>📄 Description</label>
+                            <textarea id="materialDesc" required placeholder="Describe the material content" rows="3"></textarea>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>📁 Category</label>
+                                <select id="materialCategory" required>
+                                    <option value="notes">📖 Lecture Notes</option>
+                                    <option value="assignment">📝 Assignment</option>
+                                    <option value="slides">🎯 Presentation</option>
+                                    <option value="book">📚 Textbook</option>
+                                    <option value="syllabus">📋 Syllabus</option>
+                                    <option value="other">📄 Other</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>📚 Subject</label>
+                                <select id="materialSubject" required>
+                                    <option value="Java Programming">Java Programming</option>
+                                    <option value="DBMS">Database Management Systems</option>
+                                    <option value="Data Structures">Data Structures</option>
+                                    <option value="Operating Systems">Operating Systems</option>
+                                    <option value="Computer Networks">Computer Networks</option>
+                                    <option value="Web Development">Web Development</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>📎 File URL</label>
+                            <input type="url" id="materialUrl" placeholder="https://drive.google.com/file/..." required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>💾 File Type</label>
+                            <select id="fileType" required>
+                                <option value="pdf">PDF Document</option>
+                                <option value="docx">Word Document</option>
+                                <option value="pptx">PowerPoint</option>
+                                <option value="jpg">Image</option>
+                                <option value="zip">Zip Archive</option>
+                            </select>
+                        </div>
+
+                        <div class="quick-upload-options">
+                            <h4>🚀 Quick Upload Templates:</h4>
+                            <div class="quick-buttons">
+                                <button type="button" class="btn btn-small btn-secondary" onclick="fillTemplate('lecture')">📖 Lecture Notes</button>
+                                <button type="button" class="btn btn-small btn-secondary" onclick="fillTemplate('assignment')">📝 Assignment</button>
+                                <button type="button" class="btn btn-small btn-secondary" onclick="fillTemplate('slides')">🎯 Presentation</button>
+                                <button type="button" class="btn btn-small btn-secondary" onclick="fillTemplate('syllabus')">📋 Syllabus</button>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">✅ Upload Material</button>
+                            <button type="button" class="btn btn-secondary" onclick="clearForm()">🔄 Clear Form</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Materials List -->
+                <div class="section">
+                    <div class="section-header">
+                        <h2>📚 Available Materials</h2>
+                        <div class="search-bar">
+                            <input type="text" id="searchMaterials" placeholder="🔍 Search materials..." onkeyup="searchMaterials()">
+                        </div>
+                    </div>
+
+                    <div class="file-categories">
+                        <button class="category-btn active" onclick="filterMaterials('all')">📁 All Files</button>
+                        <button class="category-btn" onclick="filterMaterials('notes')">📖 Lecture Notes</button>
+                        <button class="category-btn" onclick="filterMaterials('assignment')">📝 Assignments</button>
+                        <button class="category-btn" onclick="filterMaterials('slides')">🎯 Presentations</button>
+                        <button class="category-btn" onclick="filterMaterials('syllabus')">📋 Syllabus</button>
+                    </div>
+
+                    <div id="materialsList" class="materials-grid"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/dataHandler.js"></script>
+    <script>
+        const user = DataHandler.getCurrentUser();
+        if (!user) {
+            window.location.href = 'index.html';
+        }
+        
+        const isTeacher = user.type === 'teacher' || user.type === 'admin';
+        document.getElementById('portalTitle').textContent = isTeacher ? '👨‍🏫 Teacher Portal' : '📚 Student Portal';
+        document.getElementById('userName').textContent = user.name;
+        
+        const navMenu = document.getElementById('navMenu');
+        const dashboardLink = isTeacher ? 'teacherDashboard.html' : 'studentDashboard.html';
+        navMenu.innerHTML = `
+            <li><a href="${dashboardLink}">📊 Dashboard</a></li>
+            <li><a href="materials.html" class="active">📚 Materials</a></li>
+            <li><a href="tests.html">📝 Tests</a></li>
+            <li><a href="performance.html">📈 Performance</a></li>
+            <li><a href="notices.html">📢 Notices</a></li>
+            <li><a href="chat.html">💬 Group Chat</a></li>
+            <li><a href="#" id="logoutBtn">🚪 Logout</a></li>
+        `;
+        
+        document.getElementById('logoutBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            DataHandler.logout();
+            window.location.href = 'index.html';
+        });
+        
+        // Quick upload templates
+        function fillTemplate(type) {
+            const templates = {
+                'lecture': {
+                    title: 'Lecture Notes - ',
+                    desc: 'Complete lecture notes covering key concepts and examples.',
+                    category: 'notes',
+                    url: 'https://drive.google.com/file/d/...'
+                },
+                'assignment': {
+                    title: 'Assignment - ',
+                    desc: 'Homework assignment with problems and submission guidelines.',
+                    category: 'assignment',
+                    url: 'https://drive.google.com/file/d/...'
+                },
+                'slides': {
+                    title: 'Presentation Slides - ',
+                    desc: 'PowerPoint/PDF slides from the classroom presentation.',
+                    category: 'slides',
+                    url: 'https://drive.google.com/file/d/...'
+                },
+                'syllabus': {
+                    title: 'Course Syllabus - ',
+                    desc: 'Complete course syllabus with topics and evaluation scheme.',
+                    category: 'syllabus',
+                    url: 'https://drive.google.com/file/d/...'
+                }
+            };
+            
+            const template = templates[type];
+            document.getElementById('materialTitle').value = template.title;
+            document.getElementById('materialDesc').value = template.desc;
+            document.getElementById('materialCategory').value = template.category;
+            document.getElementById('materialUrl').value = template.url;
+            document.getElementById('materialTitle').focus();
+        }
+        
+        function clearForm() {
+            document.getElementById('uploadForm').reset();
+        }
+
+        function filterMaterials(category) {
+            // Update active button
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            searchMaterials(category);
+        }
+        
+        function searchMaterials(category = 'all') {
+            const searchTerm = document.getElementById('searchMaterials').value.toLowerCase();
+            const materials = DataHandler.getMaterials();
+            const container = document.getElementById('materialsList');
+            
+            let filteredMaterials = materials;
+            
+            // Apply category filter
+            if (category !== 'all') {
+                filteredMaterials = filteredMaterials.filter(material => material.category === category);
+            }
+            
+            // Apply search filter
+            if (searchTerm) {
+                filteredMaterials = filteredMaterials.filter(material => 
+                    material.title.toLowerCase().includes(searchTerm) ||
+                    material.description.toLowerCase().includes(searchTerm) ||
+                    material.subject.toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            if (filteredMaterials.length === 0) {
+                container.innerHTML = '<p class="empty-state">No materials found matching your search.</p>';
+                return;
+            }
+            
+            container.innerHTML = filteredMaterials.map(m => {
+                const uploader = DataHandler.getUsers().find(u => u.id === m.uploadedBy);
+                const fileIcon = getFileIcon(m.fileType);
+                const categoryIcon = getCategoryIcon(m.category);
+                
+                return `
+                    <div class="material-card">
+                        <div class="file-type-icon ${m.fileType}">${fileIcon}</div>
+                        <h3>${m.title}</h3>
+                        <p>${m.description}</p>
+                        <div class="file-info">
+                            <div class="file-details">
+                                <p>📚 ${m.subject}</p>
+                                <p>${categoryIcon} ${m.category.charAt(0).toUpperCase() + m.category.slice(1)}</p>
+                                <p>📁 ${m.fileType.toUpperCase()} • 📦 ${m.fileSize || '1.5 MB'}</p>
+                            </div>
+                        </div>
+                        <div class="material-meta">
+                            <small>📅 ${new Date(m.uploadDate).toLocaleDateString()}</small>
+                            <small>👤 ${uploader ? uploader.name : 'Unknown'}</small>
+                            <small>📥 ${m.downloads || 0} downloads</small>
+                        </div>
+                        <div class="material-actions">
+                            <a href="${m.url}" target="_blank" class="btn btn-small btn-primary">📥 Download</a>
+                            ${isTeacher && m.uploadedBy === user.id ? 
+                                `<button class="btn btn-small btn-danger" onclick="deleteMaterial('${m.id}')">🗑️ Delete</button>` : ''
+                            }
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function getFileIcon(fileType) {
+            const icons = {
+                'pdf': '📕',
+                'docx': '📘',
+                'pptx': '📙',
+                'jpg': '🖼️',
+                'zip': '📦'
+            };
+            return icons[fileType] || '📄';
+        }
+        
+        function getCategoryIcon(category) {
+            const icons = {
+                'notes': '📖',
+                'assignment': '📝',
+                'slides': '🎯',
+                'book': '📚',
+                'syllabus': '📋',
+                'other': '📄'
+            };
+            return icons[category] || '📄';
+        }
+        
+        function deleteMaterial(materialId) {
+            if (confirm('Are you sure you want to delete this material?')) {
+                const materials = DataHandler.getMaterials().filter(m => m.id !== materialId);
+                DataHandler.saveToStorage('school_materials', materials);
+                searchMaterials();
+            }
+        }
+        
+        if (isTeacher) {
+            document.getElementById('uploadSection').style.display = 'block';
+            document.getElementById('uploadForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const material = {
+                    id: Date.now().toString(),
+                    title: document.getElementById('materialTitle').value,
+                    description: document.getElementById('materialDesc').value,
+                    fileName: `${document.getElementById('materialTitle').value}.${document.getElementById('fileType').value}`,
+                    fileType: document.getElementById('fileType').value,
+                    fileSize: '1.5 MB', // Simulated file size
+                    category: document.getElementById('materialCategory').value,
+                    subject: document.getElementById('materialSubject').value,
+                    url: document.getElementById('materialUrl').value,
+                    uploadedBy: user.id,
+                    uploadDate: new Date().toISOString(),
+                    semester: '3',
+                    course: 'BCA',
+                    downloads: 0
+                };
+                DataHandler.addMaterial(material);
+                alert('✅ Material uploaded successfully!');
+                e.target.reset();
+                searchMaterials();
+            });
+        }
+        
+        function loadMaterials() {
+            searchMaterials();
+        }
+        
+        document.getElementById('menuBtn').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.add('active');
+        });
+        
+        document.getElementById('closeSidebar').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.remove('active');
+        });
+        
+        loadMaterials();
+    </script>
+</body>
+</html>

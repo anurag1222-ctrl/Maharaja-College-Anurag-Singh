@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Maharaja College</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="dashboard">
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>👑 Admin Panel</h2>
+                <button class="close-btn" id="closeSidebar">×</button>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="admin.html" class="active">📊 Dashboard</a></li>
+                <li><a href="admin-users.html">👥 User Management</a></li>
+                <li><a href="materials.html">📚 Materials</a></li>
+                <li><a href="tests.html">📝 Tests</a></li>
+                <li><a href="notices.html">📢 Notices</a></li>
+                <li><a href="performance.html">📈 Analytics</a></li>
+                <li><a href="chat.html">💬 Chat Monitor</a></li>
+                <li><a href="#" id="logoutBtn">🚪 Logout</a></li>
+            </ul>
+        </nav>
+        <main class="main-content">
+            <header class="top-bar">
+                <button class="menu-btn" id="menuBtn">☰</button>
+                <h1>Admin Dashboard - Maharaja College BCA</h1>
+                <div class="user-info">
+                    <span id="userName">Admin</span>
+                </div>
+            </header>
+            <div class="content">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Total Students</h3>
+                        <p class="stat-number" id="totalStudents">0</p>
+                        <small>BCA Semester 3</small>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Total Teachers</h3>
+                        <p class="stat-number" id="totalTeachers">0</p>
+                        <small>Computer Science</small>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Study Materials</h3>
+                        <p class="stat-number" id="totalMaterials">0</p>
+                        <small>PDFs & Resources</small>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Active Tests</h3>
+                        <p class="stat-number" id="totalTests">0</p>
+                        <small>This Semester</small>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">
+                        <h2>📊 Recent Activities</h2>
+                        <button class="btn btn-small" onclick="refreshActivities()">🔄 Refresh</button>
+                    </div>
+                    <div id="recentActivities" class="activities-list"></div>
+                </div>
+
+                <div class="section">
+                    <h2>⚡ Quick Actions</h2>
+                    <div class="action-buttons">
+                        <button class="btn btn-primary" onclick="window.location.href='admin-users.html#addUser'">
+                            ➕ Add New User
+                        </button>
+                        <button class="btn btn-primary" onclick="window.location.href='materials.html'">
+                            📚 Manage Materials
+                        </button>
+                        <button class="btn btn-primary" onclick="window.location.href='tests.html'">
+                            📝 Manage Tests
+                        </button>
+                        <button class="btn btn-primary" onclick="window.location.href='notices.html'">
+                            📢 Publish Notice
+                        </button>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">
+                        <h2>🎯 Student Performance Overview</h2>
+                        <a href="performance.html" class="btn btn-small">Detailed Report</a>
+                    </div>
+                    <div id="studentPerformance" class="performance-grid"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/dataHandler.js"></script>
+    <script>
+        const user = DataHandler.getCurrentUser();
+        if (!user || user.type !== 'admin') {
+            window.location.href = 'index.html';
+        }
+
+        document.getElementById('userName').textContent = user.name;
+
+        function loadDashboard() {
+            const users = DataHandler.getUsers();
+            const materials = DataHandler.getMaterials();
+            const tests = DataHandler.getTests();
+            const activities = DataHandler.getActivities();
+
+            // Update stats
+            document.getElementById('totalStudents').textContent = users.filter(u => u.type === 'student').length;
+            document.getElementById('totalTeachers').textContent = users.filter(u => u.type === 'teacher').length;
+            document.getElementById('totalMaterials').textContent = materials.length;
+            document.getElementById('totalTests').textContent = tests.length;
+
+            // Load recent activities
+            loadRecentActivities(activities.slice(0, 8));
+
+            // Load student performance
+            loadStudentPerformance();
+        }
+
+        function loadRecentActivities(activities) {
+            const container = document.getElementById('recentActivities');
+            if (activities.length === 0) {
+                container.innerHTML = '<p class="empty-state">No recent activities</p>';
+                return;
+            }
+
+            container.innerHTML = activities.map(activity => `
+                <div class="activity-item">
+                    <div class="activity-icon">${getActivityIcon(activity.type)}</div>
+                    <div class="activity-content">
+                        <p>${activity.description}</p>
+                        <small>👤 ${activity.userName} • ⏰ ${new Date(activity.timestamp).toLocaleString()} • 🌐 ${activity.ipAddress}</small>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function loadStudentPerformance() {
+            const studentStats = DataHandler.getStudentStats();
+            const container = document.getElementById('studentPerformance');
+            
+            if (studentStats.length === 0) {
+                container.innerHTML = '<p class="empty-state">No student data available</p>';
+                return;
+            }
+
+            // Show top 6 performers
+            const topPerformers = studentStats
+                .filter(s => s.testsAttempted > 0)
+                .sort((a, b) => b.averageScore - a.averageScore)
+                .slice(0, 6);
+
+            container.innerHTML = topPerformers.map(student => `
+                <div class="performance-card">
+                    <h3>${student.name}</h3>
+                    <p>🎯 Roll No: ${student.rollNumber}</p>
+                    <p>📝 Tests: ${student.testsAttempted}</p>
+                    <p>⭐ Average: ${student.averageScore}%</p>
+                    <small>📅 Last Active: ${new Date(student.lastActivity).toLocaleDateString()}</small>
+                </div>
+            `).join('');
+        }
+
+        function getActivityIcon(type) {
+            const icons = {
+                'USER_LOGIN': '🔐',
+                'USER_LOGOUT': '🚪',
+                'USER_ADDED': '👥',
+                'USER_DELETED': '🗑️',
+                'MATERIAL_UPLOADED': '📚',
+                'TEST_CREATED': '📝',
+                'TEST_ATTEMPTED': '✍️',
+                'NOTICE_PUBLISHED': '📢',
+                'MESSAGE_SENT': '💬',
+                'FILE_UPLOADED': '📄'
+            };
+            return icons[type] || '📄';
+        }
+
+        function refreshActivities() {
+            loadDashboard();
+            // Add bounce animation
+            const refreshBtn = event.target;
+            refreshBtn.style.transform = 'rotate(360deg)';
+            setTimeout(() => {
+                refreshBtn.style.transform = 'rotate(0deg)';
+            }, 500);
+        }
+
+        // Event Listeners
+        document.getElementById('menuBtn').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.add('active');
+        });
+
+        document.getElementById('closeSidebar').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.remove('active');
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            DataHandler.logout();
+            window.location.href = 'index.html';
+        });
+
+        loadDashboard();
+    </script>
+</body>
+</html>

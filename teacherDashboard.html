@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Dashboard - Maharaja College</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="dashboard">
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>👨‍🏫 Teacher Portal</h2>
+                <button class="close-btn" id="closeSidebar">×</button>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="teacherDashboard.html" class="active">📊 Dashboard</a></li>
+                <li><a href="materials.html">📚 Materials</a></li>
+                <li><a href="test-upload.html">📝 Create Test</a></li>
+                <li><a href="tests.html">🧪 Manage Tests</a></li>
+                <li><a href="performance.html">📈 Performance</a></li>
+                <li><a href="notice-upload.html">📢 Publish Notice</a></li>
+                <li><a href="notices.html">📋 Notices</a></li>
+                <li><a href="chat.html">💬 Group Chat</a></li>
+                <li><a href="#" id="logoutBtn">🚪 Logout</a></li>
+            </ul>
+        </nav>
+        <main class="main-content">
+            <header class="top-bar">
+                <button class="menu-btn" id="menuBtn">☰</button>
+                <h1>Teacher Dashboard</h1>
+                <div class="user-info">
+                    <span id="userName">Teacher</span>
+                </div>
+            </header>
+            <div class="content">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Total Students</h3>
+                        <p class="stat-number" id="studentsCount">0</p>
+                        <small>BCA Semester 3</small>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Materials Uploaded</h3>
+                        <p class="stat-number" id="materialsCount">0</p>
+                        <small>PDFs & Resources</small>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Tests Created</h3>
+                        <p class="stat-number" id="testsCount">0</p>
+                        <small>Active Tests</small>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Notices Published</h3>
+                        <p class="stat-number" id="noticesCount">0</p>
+                        <small>Recent Updates</small>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="window.location.href='materials.html'">
+                        📤 Upload Material
+                    </button>
+                    <button class="btn btn-primary" onclick="window.location.href='test-upload.html'">
+                        📝 Create Test
+                    </button>
+                    <button class="btn btn-primary" onclick="window.location.href='notice-upload.html'">
+                        📢 Publish Notice
+                    </button>
+                    <button class="btn btn-primary" onclick="window.location.href='chat.html'">
+                        💬 Group Chat
+                    </button>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">
+                        <h2>📊 Recent Activities</h2>
+                        <a href="performance.html" class="btn btn-small">View All</a>
+                    </div>
+                    <div id="recentActivities" class="activities-list"></div>
+                </div>
+
+                <div class="section">
+                    <h2>🎯 Quick Actions</h2>
+                    <div class="quick-actions-grid">
+                        <div class="quick-action-card" onclick="window.location.href='test-upload.html'">
+                            <div class="action-icon">📝</div>
+                            <h3>Create Test</h3>
+                            <p>Create new MCQ test for students</p>
+                        </div>
+                        <div class="quick-action-card" onclick="window.location.href='materials.html'">
+                            <div class="action-icon">📚</div>
+                            <h3>Upload Notes</h3>
+                            <p>Share study materials with students</p>
+                        </div>
+                        <div class="quick-action-card" onclick="window.location.href='notice-upload.html'">
+                            <div class="action-icon">📢</div>
+                            <h3>Post Notice</h3>
+                            <p>Publish important announcements</p>
+                        </div>
+                        <div class="quick-action-card" onclick="window.location.href='performance.html'">
+                            <div class="action-icon">📈</div>
+                            <h3>View Results</h3>
+                            <p>Check student performance</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/dataHandler.js"></script>
+    <script>
+        const user = DataHandler.getCurrentUser();
+        if (!user || user.type !== 'teacher') {
+            window.location.href = 'index.html';
+        }
+
+        document.getElementById('userName').textContent = user.name;
+
+        function loadDashboard() {
+            const users = DataHandler.getUsers();
+            const materials = DataHandler.getMaterials();
+            const tests = DataHandler.getTests();
+            const notices = DataHandler.getNotices();
+            const activities = DataHandler.getActivities();
+
+            // Update stats
+            document.getElementById('studentsCount').textContent = users.filter(u => u.type === 'student').length;
+            document.getElementById('materialsCount').textContent = materials.filter(m => m.uploadedBy === user.id).length;
+            document.getElementById('testsCount').textContent = tests.filter(t => t.createdBy === user.id).length;
+            document.getElementById('noticesCount').textContent = notices.filter(n => n.publishedBy === user.id).length;
+
+            // Load recent activities
+            loadRecentActivities(activities.slice(0, 5));
+        }
+
+        function loadRecentActivities(activities) {
+            const container = document.getElementById('recentActivities');
+            if (activities.length === 0) {
+                container.innerHTML = '<p class="empty-state">No recent activities</p>';
+                return;
+            }
+
+            container.innerHTML = activities.map(activity => `
+                <div class="activity-item">
+                    <div class="activity-icon">${getActivityIcon(activity.type)}</div>
+                    <div class="activity-content">
+                        <p>${activity.description}</p>
+                        <small>👤 ${activity.userName} • ⏰ ${new Date(activity.timestamp).toLocaleString()}</small>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getActivityIcon(type) {
+            const icons = {
+                'USER_LOGIN': '🔐',
+                'USER_LOGOUT': '🚪',
+                'MATERIAL_UPLOADED': '📚',
+                'TEST_CREATED': '📝',
+                'TEST_ATTEMPTED': '✍️',
+                'NOTICE_PUBLISHED': '📢',
+                'MESSAGE_SENT': '💬'
+            };
+            return icons[type] || '📄';
+        }
+
+        // Event Listeners
+        document.getElementById('menuBtn').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.add('active');
+        });
+
+        document.getElementById('closeSidebar').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.remove('active');
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            DataHandler.logout();
+            window.location.href = 'index.html';
+        });
+
+        loadDashboard();
+    </script>
+
+    <style>
+        .quick-actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .quick-action-card {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .quick-action-card:hover {
+            transform: translateY(-5px);
+            border-color: #3498db;
+            background: white;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        .action-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .quick-action-card h3 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+        }
+
+        .quick-action-card p {
+            color: #666;
+            margin: 0;
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .quick-actions-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .quick-actions-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</body>
+</html>

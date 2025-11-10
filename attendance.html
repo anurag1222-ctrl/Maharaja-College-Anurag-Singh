@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance - Maharaja College</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="dashboard">
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2 id="portalTitle">📚 Portal</h2>
+                <button class="close-btn" id="closeSidebar">×</button>
+            </div>
+            <ul class="nav-menu" id="navMenu"></ul>
+        </nav>
+        <main class="main-content">
+            <header class="top-bar">
+                <button class="menu-btn" id="menuBtn">☰</button>
+                <h1>📋 Attendance System</h1>
+                <div class="user-info">
+                    <span id="userName">User</span>
+                </div>
+            </header>
+            <div class="content">
+                <!-- Teacher Actions -->
+                <div id="teacherActions" style="display:none;" class="section">
+                    <div class="section-header">
+                        <h2>👨‍🏫 Mark Attendance</h2>
+                        <button class="btn btn-primary" onclick="showMarkAttendanceModal()">📝 Mark Today's Attendance</button>
+                    </div>
+                </div>
+
+                <!-- Student View -->
+                <div id="studentView" style="display:none;">
+                    <div class="section">
+                        <h2>📊 Your Attendance Summary</h2>
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <h3>Total Classes</h3>
+                                <p class="stat-number" id="totalClasses">0</p>
+                            </div>
+                            <div class="stat-card">
+                                <h3>Present</h3>
+                                <p class="stat-number" id="presentCount">0</p>
+                            </div>
+                            <div class="stat-card">
+                                <h3>Absent</h3>
+                                <p class="stat-number" id="absentCount">0</p>
+                            </div>
+                            <div class="stat-card">
+                                <h3>Percentage</h3>
+                                <p class="stat-number" id="attendancePercent">0%</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <h2>📅 Recent Attendance</h2>
+                        <div id="studentAttendanceList" class="attendance-list"></div>
+                    </div>
+                </div>
+
+                <!-- Teacher View -->
+                <div id="adminView" style="display:none;">
+                    <div class="section">
+                        <div class="section-header">
+                            <h2>📋 Attendance Records</h2>
+                            <div class="filter-options">
+                                <input type="date" id="attendanceDate" onchange="loadAttendanceRecords()">
+                                <select id="attendanceClass" onchange="loadAttendanceRecords()">
+                                    <option value="all">All Classes</option>
+                                </select>
+                                <button class="btn btn-secondary" onclick="exportAttendance()">📤 Export</button>
+                            </div>
+                        </div>
+                        <div id="attendanceRecords" class="attendance-table-container"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Mark Attendance Modal -->
+    <div id="markAttendanceModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📝 Mark Attendance - <span id="modalDate"></span></h3>
+                <button class="close-btn" onclick="closeMarkAttendanceModal()">×</button>
+            </div>
+            <div class="form">
+                <div class="form-group">
+                    <label>🏫 Class</label>
+                    <select id="markClass" required onchange="loadClassStudents()">
+                        <option value="">Select Class</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>📚 Subject</label>
+                    <select id="markSubject" required>
+                        <option value="">Select Subject</option>
+                        <option value="Java Programming">Java Programming</option>
+                        <option value="DBMS">DBMS</option>
+                        <option value="Data Structures">Data Structures</option>
+                        <option value="Operating Systems">Operating Systems</option>
+                    </select>
+                </div>
+                
+                <div id="studentsAttendanceList" class="attendance-marking-list"></div>
+                
+                <div class="form-actions">
+                    <button class="btn btn-primary" onclick="saveAttendance()">💾 Save Attendance</button>
+                    <button class="btn btn-secondary" onclick="closeMarkAttendanceModal()">❌ Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/dataHandler.js"></script>
+    <script>
+        const user = DataHandler.getCurrentUser();
+        if (!user) window.location.href = 'index.html';
+        
+        const isStudent = user.type === 'student';
+        const isTeacher = user.type === 'teacher' || user.type === 'admin';
+        
+        document.getElementById('portalTitle').textContent = isStudent ? '🎓 Student Portal' : '👨‍🏫 Teacher Portal';
+        document.getElementById('userName').textContent = user.name;
+        
+        // Navigation setup
+        const navMenu = document.getElementById('navMenu');
+        const dashboardLink = isStudent ? 'studentDashboard.html' : 'teacherDashboard.html';
+        navMenu.innerHTML = `
+            <li><a href="${dashboardLink}">📊 Dashboard</a></li>
+            <li><a href="student-profiles.html">👤 Profiles</a></li>
+            <li><a href="timetable.html">📅 Timetable</a></li>
+            <li><a href="attendance.html" class="active">📋 Attendance</a></li>
+            <li><a href="grades.html">📊 Grades</a></li>
+            <li><a href="fees.html">💰 Fees</a></li>
+            <li><a href="materials.html">📚 Materials</a></li>
+            <li><a href="tests.html">📝 Tests</a></li>
+            <li><a href="performance.html">📈 Performance</a></li>
+            <li><a href="notices.html">📢 Notices</a></li>
+            <li><a href="chat.html">💬 Group Chat</a></li>
+            <li><a href="#" id="logoutBtn">🚪 Logout</a></li>
+        `;
+
+        document.getElementById('logoutBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            DataHandler.logout();
+            window.location.href = 'index.html';
+        });
+
+        if (isStudent) {
+            document.getElementById('studentView').style.display = 'block';
+            loadStudentAttendance();
+        } else {
+            document.getElementById('teacherActions').style.display = 'block';
+            document.getElementById('adminView').style.display = 'block';
+            loadTeacherView();
+        }
+
+        function loadStudentAttendance() {
+            const attendance = DataHandler.getAttendance().filter(a => a.studentId === user.id);
+            const total = attendance.length;
+            const present = attendance.filter(a => a.status === 'Present').length;
+            const absent = attendance.filter(a => a.status === 'Absent').length;
+            const percentage = total > 0 ? ((present / total) * 100).toFixed(1) : 0;
+
+            document.getElementById('totalClasses').textContent = total;
+            document.getElementById('presentCount').textContent = present;
+            document.getElementById('absentCount').textContent = absent;
+            document.getElementById('attendancePercent').textContent = percentage + '%';
+
+            // Load recent attendance
+            const container = document.getElementById('studentAttendanceList');
+            const recent = attendance.slice(-10).reverse();
+            
+            if (recent.length === 0) {
+                container.innerHTML = '<p class="empty-state">No attendance records found.</p>';
+                return;
+            }
+
+            container.innerHTML = recent.map(record => `
+                <div class="attendance-item ${record.status.toLowerCase()}">
+                    <div class="attendance-date">
+                        <strong>${new Date(record.date).toLocaleDateString()}</strong>
+                        <span>${record.subject}</span>
+                    </div>
+                    <div class="attendance-status">
+                        <span class="status-badge ${record.status.toLowerCase()}">${record.status}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function loadTeacherView() {
+            const classes = DataHandler.getClasses();
+            const classSelect = document.getElementById('attendanceClass');
+            
+            classes.forEach(cls => {
+                classSelect.innerHTML += `<option value="${cls.id}">${cls.name}</option>`;
+            });
+            
+            loadAttendanceRecords();
+        }
+
+        function loadAttendanceRecords() {
+            const date = document.getElementById('attendanceDate').value;
+            const classId = document.getElementById('attendanceClass').value;
+            const attendance = DataHandler.getAttendance();
+            const users = DataHandler.getUsers();
+            const classes = DataHandler.getClasses();
+            
+            let filteredAttendance = attendance;
+            
+            if (date) {
+                filteredAttendance = filteredAttendance.filter(a => a.date === date);
+            }
+            
+            if (classId !== 'all') {
+                const classStudents = users.filter(u => u.type === 'student' && 
+                    u.semester === classes.find(c => c.id === classId)?.semester);
+                filteredAttendance = filteredAttendance.filter(a => 
+                    classStudents.some(s => s.id === a.studentId)
+                );
+            }
+            
+            displayAttendanceRecords(filteredAttendance);
+        }
+
+        function displayAttendanceRecords(attendance) {
+            const container = document.getElementById('attendanceRecords');
+            const users = DataHandler.getUsers();
+            
+            if (attendance.length === 0) {
+                container.innerHTML = '<p class="empty-state">No attendance records found for the selected criteria.</p>';
+                return;
+            }
+
+            // Group by date and subject
+            const grouped = attendance.reduce((acc, record) => {
+                const key = `${record.date}-${record.subject}`;
+                if (!acc[key]) {
+                    acc[key] = {
+                        date: record.date,
+                        subject: record.subject,
+                        records: []
+                    };
+                }
+                acc[key].records.push(record);
+                return acc;
+            }, {});
+
+            container.innerHTML = Object.values(grouped).map(group => {
+                const presentCount = group.records.filter(r => r.status === 'Present').length;
+                const totalCount = group.records.length;
+                
+                return `
+                    <div class="attendance-group">
+                        <div class="group-header">
+                            <h4>${new Date(group.date).toLocaleDateString()} - ${group.subject}</h4>
+                            <span class="attendance-stats">${presentCount}/${totalCount} Present</span>
+                        </div>
+                        <div class="attendance-details">
+                            ${group.records.map(record => {
+                                const student = users.find(u => u.id === record.studentId);
+                                return `
+                                    <div class="attendance-detail-item">
+                                        <span>${student ? student.name : 'Unknown'} (${student ? student.rollNumber : 'N/A'})</span>
+                                        <span class="status-badge ${record.status.toLowerCase()}">${record.status}</span>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function showMarkAttendanceModal() {
+            document.getElementById('modalDate').textContent = new Date().toLocaleDateString();
+            
+            const classes = DataHandler.getClasses();
+            const classSelect = document.getElementById('markClass');
+            classSelect.innerHTML = '<option value="">Select Class</option>';
+            classes.forEach(cls => {
+                classSelect.innerHTML += `<option value="${cls.id}">${cls.name}</option>`;
+            });
+            
+            document.getElementById('markAttendanceModal').style.display = 'flex';
+        }
+
+        function closeMarkAttendanceModal() {
+            document.getElementById('markAttendanceModal').style.display = 'none';
+        }
+
+        function loadClassStudents() {
+            const classId = document.getElementById('markClass').value;
+            if (!classId) return;
+            
+            const classes = DataHandler.getClasses();
+            const selectedClass = classes.find(c => c.id === classId);
+            const students = DataHandler.getUsers().filter(u => 
+                u.type === 'student' && 
+                u.semester === selectedClass.semester && 
+                u.course === selectedClass.course
+            );
+            
+            const container = document.getElementById('studentsAttendanceList');
+            container.innerHTML = students.map(student => `
+                <div class="attendance-student-item">
+                    <div class="student-info">
+                        <strong>${student.name}</strong>
+                        <span>${student.rollNumber}</span>
+                    </div>
+                    <div class="attendance-options">
+                        <label class="attendance-option">
+                            <input type="radio" name="attendance_${student.id}" value="Present" checked>
+                            <span>✅ Present</span>
+                        </label>
+                        <label class="attendance-option">
+                            <input type="radio" name="attendance_${student.id}" value="Absent">
+                            <span>❌ Absent</span>
+                        </label>
+                        <label class="attendance-option">
+                            <input type="radio" name="attendance_${student.id}" value="Late">
+                            <span>⏰ Late</span>
+                        </label>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function saveAttendance() {
+            const classId = document.getElementById('markClass').value;
+            const subject = document.getElementById('markSubject').value;
+            const date = new Date().toISOString().split('T')[0];
+            
+            if (!classId || !subject) {
+                alert('Please select both class and subject.');
+                return;
+            }
+            
+            const classes = DataHandler.getClasses();
+            const selectedClass = classes.find(c => c.id === classId);
+            const students = DataHandler.getUsers().filter(u => 
+                u.type === 'student' && 
+                u.semester === selectedClass.semester && 
+                u.course === selectedClass.course
+            );
+            
+            students.forEach(student => {
+                const status = document.querySelector(`input[name="attendance_${student.id}"]:checked`).value;
+                
+                const attendanceRecord = {
+                    id: Date.now().toString() + Math.random(),
+                    studentId: student.id,
+                    studentName: student.name,
+                    rollNumber: student.rollNumber,
+                    classId: classId,
+                    className: selectedClass.name,
+                    subject: subject,
+                    date: date,
+                    status: status,
+                    markedBy: user.id,
+                    markedAt: new Date().toISOString()
+                };
+                
+                DataHandler.markAttendance(attendanceRecord);
+            });
+            
+            alert('✅ Attendance marked successfully!');
+            closeMarkAttendanceModal();
+            loadAttendanceRecords();
+        }
+
+        function exportAttendance() {
+            const attendance = DataHandler.getAttendance();
+            const exportData = attendance.map(record => ({
+                date: record.date,
+                student: record.studentName,
+                rollNumber: record.rollNumber,
+                class: record.className,
+                subject: record.subject,
+                status: record.status,
+                markedBy: record.markedBy,
+                markedAt: record.markedAt
+            }));
+            
+            DataHandler.exportData(exportData, 'attendance_records.json');
+        }
+
+        // Event Listeners
+        document.getElementById('menuBtn').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.add('active');
+        });
+
+        document.getElementById('closeSidebar').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.remove('active');
+        });
+
+        // Set default date to today
+        document.getElementById('attendanceDate').value = new Date().toISOString().split('T')[0];
+    </script>
+
+    <style>
+        .attendance-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .attendance-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .attendance-date strong {
+            display: block;
+            color: #2c3e50;
+        }
+        .attendance-date span {
+            color: #666;
+            font-size: 14px;
+        }
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status-badge.present {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-badge.absent {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .status-badge.late {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .filter-options {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .attendance-table-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .attendance-group {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .group-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e1e1e1;
+        }
+        .group-header h4 {
+            margin: 0;
+            color: #2c3e50;
+        }
+        .attendance-stats {
+            background: #3498db;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .attendance-details {
+            padding: 15px;
+        }
+        .attendance-detail-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f1f1f1;
+        }
+        .attendance-detail-item:last-child {
+            border-bottom: none;
+        }
+        .attendance-marking-list {
+            max-height: 400px;
+            overflow-y: auto;
+            margin: 15px 0;
+            border: 1px solid #e1e1e1;
+            border-radius: 8px;
+        }
+        .attendance-student-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            border-bottom: 1px solid #f1f1f1;
+        }
+        .attendance-student-item:last-child {
+            border-bottom: none;
+        }
+        .student-info {
+            display: flex;
+            flex-direction: column;
+        }
+        .student-info strong {
+            color: #2c3e50;
+        }
+        .student-info span {
+            color: #666;
+            font-size: 12px;
+        }
+        .attendance-options {
+            display: flex;
+            gap: 15px;
+        }
+        .attendance-option {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+        .attendance-option input {
+            margin: 0;
+        }
+    </style>
+</body>
+</html>

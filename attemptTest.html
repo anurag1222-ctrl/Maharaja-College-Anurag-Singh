@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attempt Test - Maharaja College</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="dashboard">
+        <main class="main-content" style="margin-left:0;">
+            <header class="top-bar">
+                <h1 id="testTitle">Test</h1>
+                <div class="timer-container">
+                    <div class="timer" id="timer">30:00</div>
+                    <div class="questions-progress" id="questionsProgress">Question 1 of 10</div>
+                </div>
+            </header>
+            <div class="content">
+                <div class="test-info-section">
+                    <div class="test-info-card">
+                        <h3>📝 Test Instructions</h3>
+                        <p id="testInstructions">Read each question carefully and select the best answer.</p>
+                        <div class="test-details">
+                            <p><strong>⏱️ Duration:</strong> <span id="testDuration">30 minutes</span></p>
+                            <p><strong>📝 Total Questions:</strong> <span id="totalQuestions">10</span></p>
+                            <p><strong>🎯 Type:</strong> Multiple Choice Questions</p>
+                            <p><strong>⚠️ Note:</strong> Timer will auto-submit when time ends</p>
+                        </div>
+                        <button class="btn btn-primary" onclick="startTest()">🚀 Start Test</button>
+                    </div>
+                </div>
+
+                <form id="testForm" class="test-form" style="display:none;">
+                    <div id="questionsContainer"></div>
+                    <div class="test-actions">
+                        <button type="button" class="btn btn-secondary" onclick="previousQuestion()">⬅️ Previous</button>
+                        <button type="button" class="btn btn-secondary" onclick="nextQuestion()">Next ➡️</button>
+                        <button type="submit" class="btn btn-primary">✅ Submit Test</button>
+                    </div>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/dataHandler.js"></script>
+    <script>
+        const user = DataHandler.getCurrentUser();
+        if (!user || user.type !== 'student') {
+            window.location.href = 'index.html';
+        }
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const testId = urlParams.get('id');
+        const test = DataHandler.getTests().find(t => t.id === testId);
+        
+        if (!test) {
+            alert('Test not found!');
+            window.location.href = 'tests.html';
+        }
+
+        let currentQuestionIndex = 0;
+        let timeLeft = test.duration * 60;
+        let timerInterval;
+        let answers = new Array(test.questions.length).fill(-1);
+
+        document.getElementById('testTitle').textContent = test.title;
+        document.getElementById('testInstructions').textContent = test.instructions || 'Read each question carefully and select the best answer.';
+        document.getElementById('testDuration').textContent = `${test.duration} minutes`;
+        document.getElementById('totalQuestions').textContent = test.questions.length;
+
+        function startTest() {
+            document.querySelector('.test-info-section').style.display = 'none';
+            document.getElementById('testForm').style.display = 'block';
+            loadQuestion(0);
+            startTimer();
+        }
+
+        function startTimer() {
+            updateTimerDisplay();
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerDisplay();
+                
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    submitTest();
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const mins = Math.floor(timeLeft / 60);
+            const secs = timeLeft % 60;
+            const timerEl = document.getElementById('timer');
+            timerEl.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            
+            // Change color when time is running out
+            if (timeLeft < 300) { // 5 minutes
+                timerEl.style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)';
+                timerEl.style.animation = 'pulse 0.5s infinite';
+            }
+        }
+
+        function updateProgress() {
+            document.getElementById('questionsProgress').textContent = 
+                `Question ${currentQuestionIndex + 1} of ${test.questions.length}`;
+        }
+
+        function loadQuestion(index) {
+            currentQuestionIndex = index;
+            const question = test.questions[index];
+            const container = document.getElementById('questionsContainer');
+            
+            container.innerHTML = `
+                <div class="question-block">
+                    <h3>Question ${index + 1}</h3>
+                    <p>${question.question}</p>
+                    <div class="options">
+                        ${question.options.map((opt, optIdx) => `
+                            <label class="option-label ${answers[index] === optIdx ? 'selected' : ''}">
+                                <input type="radio" name="question_${index}" value="${optIdx}" 
+                                       ${answers[index] === optIdx ? 'checked' : ''}
+                                       onchange="saveAnswer(${index}, ${optIdx})">
+                                <span>${String.fromCharCode(65 + optIdx)}. ${opt}</span>
+                            </label>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+            
+            updateProgress();
+            updateNavigationButtons();
+        }
+
+        function saveAnswer(questionIndex, answerIndex) {
+            answers[questionIndex] = answerIndex;
+            document.querySelectorAll('.option-label').forEach(label => {
+                label.classList.remove('selected');
+            });
+            event.target.closest('.option-label').classList.add('selected');
+        }
+
+        function previousQuestion() {
+            if (currentQuestionIndex > 0) {
+                loadQuestion(currentQuestionIndex - 1);
+            }
+        }
+
+        function nextQuestion() {
+            if (currentQuestionIndex < test.questions.length - 1) {
+                loadQuestion(currentQuestionIndex + 1);
+            }
+        }
+
+        function updateNavigationButtons() {
+            const prevBtn = document.querySelector('button[onclick="previousQuestion()"]');
+            const nextBtn = document.querySelector('button[onclick="nextQuestion()"]');
+            
+            prevBtn.disabled = currentQuestionIndex === 0;
+            nextBtn.disabled = currentQuestionIndex === test.questions.length - 1;
+        }
+
+        function submitTest() {
+            clearInterval(timerInterval);
+            
+            const score = answers.reduce((acc, ans, idx) => {
+                return acc + (ans === test.questions[idx].correctAnswer ? 1 : 0);
+            }, 0);
+            
+            const percentage = ((score / test.questions.length) * 100).toFixed(2);
+            
+            const submission = {
+                id: Date.now().toString(),
+                testId: test.id,
+                studentId: user.id,
+                answers: answers,
+                score: score,
+                percentage: percentage,
+                totalQuestions: test.questions.length,
+                submittedAt: new Date().toISOString(),
+                timeSpent: (test.duration * 60) - timeLeft
+            };
+            
+            DataHandler.addSubmission(submission);
+            
+            // Show results
+            const resultsHTML = `
+                <div class="results-section">
+                    <div class="results-card">
+                        <div class="results-header">
+                            <h2>🎯 Test Submitted Successfully!</h2>
+                            <div class="score-circle">
+                                <span class="score-percentage">${percentage}%</span>
+                            </div>
+                        </div>
+                        <div class="results-details">
+                            <p><strong>📝 Test:</strong> ${test.title}</p>
+                            <p><strong>✅ Correct Answers:</strong> ${score}/${test.questions.length}</p>
+                            <p><strong>⏱️ Time Spent:</strong> ${Math.floor(submission.timeSpent / 60)}m ${submission.timeSpent % 60}s</p>
+                            <p><strong>📅 Submitted:</strong> ${new Date().toLocaleString()}</p>
+                        </div>
+                        <div class="results-actions">
+                            <button class="btn btn-primary" onclick="window.location.href='performance.html'">📈 View Performance</button>
+                            <button class="btn btn-secondary" onclick="window.location.href='tests.html'">📝 Back to Tests</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.querySelector('.content').innerHTML = resultsHTML;
+        }
+
+        document.getElementById('testForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            if (confirm('Are you sure you want to submit the test?')) {
+                submitTest();
+            }
+        });
+
+        // Add CSS for test styles
+        const style = document.createElement('style');
+        style.textContent = `
+            .timer-container {
+                display: flex;
+                align-items: center;
+                gap: 20px;
+            }
+            .questions-progress {
+                background: #3498db;
+                color: white;
+                padding: 10px 15px;
+                border-radius: 8px;
+                font-weight: bold;
+            }
+            .test-info-section {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 60vh;
+            }
+            .test-info-card {
+                background: white;
+                padding: 40px;
+                border-radius: 15px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+                text-align: center;
+                max-width: 500px;
+                width: 100%;
+            }
+            .test-details {
+                text-align: left;
+                margin: 20px 0;
+                padding: 20px;
+                background: #f8f9fa;
+                border-radius: 10px;
+            }
+            .test-details p {
+                margin: 10px 0;
+            }
+            .test-actions {
+                display: flex;
+                justify-content: space-between;
+                margin-top: 30px;
+                padding-top: 20px;
+                border-top: 1px solid #e1e1e1;
+            }
+            .option-label.selected {
+                background: #e8f4fd;
+                border-color: #3498db;
+                transform: translateX(5px);
+            }
+            .results-section {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 60vh;
+            }
+            .results-card {
+                background: white;
+                padding: 40px;
+                border-radius: 15px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+                text-align: center;
+                max-width: 500px;
+                width: 100%;
+            }
+            .results-header {
+                margin-bottom: 30px;
+            }
+            .score-circle {
+                width: 120px;
+                height: 120px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 20px auto;
+                color: white;
+                font-size: 24px;
+                font-weight: bold;
+            }
+            .results-details {
+                text-align: left;
+                margin: 20px 0;
+                padding: 20px;
+                background: #f8f9fa;
+                border-radius: 10px;
+            }
+            .results-actions {
+                display: flex;
+                gap: 15px;
+                justify-content: center;
+                margin-top: 20px;
+            }
+
+            @media (max-width: 768px) {
+                .timer-container {
+                    flex-direction: column;
+                    gap: 10px;
+                }
+                .test-actions {
+                    flex-direction: column;
+                    gap: 10px;
+                }
+                .results-actions {
+                    flex-direction: column;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>

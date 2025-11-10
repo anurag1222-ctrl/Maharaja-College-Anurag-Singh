@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grades - Maharaja College</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="dashboard">
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2 id="portalTitle">📚 Portal</h2>
+                <button class="close-btn" id="closeSidebar">×</button>
+            </div>
+            <ul class="nav-menu" id="navMenu"></ul>
+        </nav>
+        <main class="main-content">
+            <header class="top-bar">
+                <button class="menu-btn" id="menuBtn">☰</button>
+                <h1>📊 Grade Management</h1>
+                <div class="user-info">
+                    <span id="userName">User</span>
+                </div>
+            </header>
+            <div class="content">
+                <!-- Teacher Actions -->
+                <div id="teacherActions" style="display:none;" class="section">
+                    <div class="section-header">
+                        <h2>👨‍🏫 Grade Management</h2>
+                        <button class="btn btn-primary" onclick="showAddGradeModal()">➕ Add Grades</button>
+                    </div>
+                </div>
+
+                <!-- Student View -->
+                <div id="studentView" style="display:none;">
+                    <div class="section">
+                        <h2>📈 Your Academic Performance</h2>
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <h3>CGPA</h3>
+                                <p class="stat-number" id="studentCGPA">0.00</p>
+                                <small>Cumulative Grade</small>
+                            </div>
+                            <div class="stat-card">
+                                <h3>Total Subjects</h3>
+                                <p class="stat-number" id="totalSubjects">0</p>
+                                <small>This Semester</small>
+                            </div>
+                            <div class="stat-card">
+                                <h3>Highest Grade</h3>
+                                <p class="stat-number" id="highestGrade">-</p>
+                                <small>Best Performance</small>
+                            </div>
+                            <div class="stat-card">
+                                <h3>Attendance %</h3>
+                                <p class="stat-number" id="attendanceGrade">0%</p>
+                                <small>Current</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <h2>📚 Subject-wise Grades</h2>
+                        <div id="studentGradesList" class="grades-container"></div>
+                        <div class="export-actions">
+                            <button class="btn btn-secondary" onclick="exportStudentGrades()">📤 Export Grade Card</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Teacher View -->
+                <div id="adminView" style="display:none;">
+                    <div class="section">
+                        <div class="section-header">
+                            <h2>📋 All Grades</h2>
+                            <div class="filter-options">
+                                <select id="gradeClass" onchange="loadGradeRecords()">
+                                    <option value="all">All Classes</option>
+                                </select>
+                                <select id="gradeSubject" onchange="loadGradeRecords()">
+                                    <option value="all">All Subjects</option>
+                                </select>
+                                <button class="btn btn-secondary" onclick="exportAllGrades()">📤 Export All</button>
+                            </div>
+                        </div>
+                        <div id="gradeRecords" class="grades-table-container"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add Grade Modal -->
+    <div id="addGradeModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📊 Add Grades</h3>
+                <button class="close-btn" onclick="closeAddGradeModal()">×</button>
+            </div>
+            <form id="addGradeForm" class="form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>🏫 Class</label>
+                        <select id="gradeClassSelect" required onchange="loadStudentsForGrading()">
+                            <option value="">Select Class</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>📚 Subject</label>
+                        <select id="gradeSubjectSelect" required>
+                            <option value="">Select Subject</option>
+                            <option value="Java Programming">Java Programming</option>
+                            <option value="DBMS">DBMS</option>
+                            <option value="Data Structures">Data Structures</option>
+                            <option value="Operating Systems">Operating Systems</option>
+                            <option value="Computer Networks">Computer Networks</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>📝 Exam Type</label>
+                        <select id="gradeType" required>
+                            <option value="Internal">Internal Assessment</option>
+                            <option value="Midterm">Midterm Exam</option>
+                            <option value="Final">Final Exam</option>
+                            <option value="Assignment">Assignment</option>
+                            <option value="Project">Project</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>📅 Exam Date</label>
+                        <input type="date" id="gradeDate" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>📊 Maximum Marks</label>
+                    <input type="number" id="maxMarks" value="100" required>
+                </div>
+                
+                <div id="studentsGradingList" class="grading-list"></div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">💾 Save Grades</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeAddGradeModal()">❌ Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/dataHandler.js"></script>
+    <script>
+        const user = DataHandler.getCurrentUser();
+        if (!user) window.location.href = 'index.html';
+        
+        const isStudent = user.type === 'student';
+        const isTeacher = user.type === 'teacher' || user.type === 'admin';
+        
+        document.getElementById('portalTitle').textContent = isStudent ? '🎓 Student Portal' : '👨‍🏫 Teacher Portal';
+        document.getElementById('userName').textContent = user.name;
+        
+        // Navigation setup
+        const navMenu = document.getElementById('navMenu');
+        const dashboardLink = isStudent ? 'studentDashboard.html' : 'teacherDashboard.html';
+        navMenu.innerHTML = `
+            <li><a href="${dashboardLink}">📊 Dashboard</a></li>
+            <li><a href="student-profiles.html">👤 Profiles</a></li>
+            <li><a href="timetable.html">📅 Timetable</a></li>
+            <li><a href="attendance.html">📋 Attendance</a></li>
+            <li><a href="grades.html" class="active">📊 Grades</a></li>
+            <li><a href="fees.html">💰 Fees</a></li>
+            <li><a href="materials.html">📚 Materials</a></li>
+            <li><a href="tests.html">📝 Tests</a></li>
+            <li><a href="performance.html">📈 Performance</a></li>
+            <li><a href="notices.html">📢 Notices</a></li>
+            <li><a href="chat.html">💬 Group Chat</a></li>
+            <li><a href="#" id="logoutBtn">🚪 Logout</a></li>
+        `;
+
+        document.getElementById('logoutBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            DataHandler.logout();
+            window.location.href = 'index.html';
+        });
+
+        // Grade points mapping
+        const gradePoints = {
+            'A+': 10, 'A': 9, 'B+': 8, 'B': 7, 'C+': 6, 'C': 5, 'D': 4, 'F': 0
+        };
+
+        const gradeRanges = [
+            { min: 90, grade: 'A+', points: 10 },
+            { min: 80, grade: 'A', points: 9 },
+            { min: 70, grade: 'B+', points: 8 },
+            { min: 60, grade: 'B', points: 7 },
+            { min: 50, grade: 'C+', points: 6 },
+            { min: 40, grade: 'C', points: 5 },
+            { min: 30, grade: 'D', points: 4 },
+            { min: 0, grade: 'F', points: 0 }
+        ];
+
+        function calculateGrade(percentage) {
+            const range = gradeRanges.find(r => percentage >= r.min);
+            return range ? range.grade : 'F';
+        }
+
+        function calculateGradePoints(percentage) {
+            const range = gradeRanges.find(r => percentage >= r.min);
+            return range ? range.points : 0;
+        }
+
+        if (isStudent) {
+            document.getElementById('studentView').style.display = 'block';
+            loadStudentGrades();
+        } else {
+            document.getElementById('teacherActions').style.display = 'block';
+            document.getElementById('adminView').style.display = 'block';
+            loadTeacherView();
+        }
+
+        function loadStudentGrades() {
+            const grades = DataHandler.getGrades().filter(g => g.studentId === user.id);
+            const subjects = [...new Set(grades.map(g => g.subject))];
+            
+            // Calculate CGPA
+            const subjectGrades = {};
+            grades.forEach(grade => {
+                if (!subjectGrades[grade.subject]) {
+                    subjectGrades[grade.subject] = [];
+                }
+                subjectGrades[grade.subject].push(grade);
+            });
+
+            let totalPoints = 0;
+            let totalSubjects = 0;
+            
+            Object.keys(subjectGrades).forEach(subject => {
+                const subjectGrade = subjectGrades[subject];
+                const latestGrade = subjectGrade.sort((a, b) => new Date(b.examDate) - new Date(a.examDate))[0];
+                if (latestGrade && latestGrade.gradePoints) {
+                    totalPoints += latestGrade.gradePoints;
+                    totalSubjects++;
+                }
+            });
+
+            const cgpa = totalSubjects > 0 ? (totalPoints / totalSubjects).toFixed(2) : 0;
+            
+            // Find highest grade
+            const highestGrade = grades.length > 0 ? 
+                grades.reduce((max, grade) => grade.gradePoints > max.gradePoints ? grade : max, grades[0]) : 
+                null;
+
+            document.getElementById('studentCGPA').textContent = cgpa;
+            document.getElementById('totalSubjects').textContent = subjects.length;
+            document.getElementById('highestGrade').textContent = highestGrade ? highestGrade.grade : '-';
+            
+            // Load subject-wise grades
+            const container = document.getElementById('studentGradesList');
+            if (grades.length === 0) {
+                container.innerHTML = '<p class="empty-state">No grades available yet.</p>';
+                return;
+            }
+
+            container.innerHTML = Object.keys(subjectGrades).map(subject => {
+                const subjectGrade = subjectGrades[subject];
+                const latest = subjectGrade.sort((a, b) => new Date(b.examDate) - new Date(a.examDate))[0];
+                const allGrades = subjectGrade.map(g => `
+                    <tr>
+                        <td>${g.examType}</td>
+                        <td>${g.marksObtained}/${g.maxMarks}</td>
+                        <td>${g.percentage}%</td>
+                        <td><span class="grade-badge ${g.grade}">${g.grade}</span></td>
+                        <td>${new Date(g.examDate).toLocaleDateString()}</td>
+                    </tr>
+                `).join('');
+
+                return `
+                    <div class="subject-grade-card">
+                        <div class="subject-header">
+                            <h3>${subject}</h3>
+                            <div class="subject-overview">
+                                <span class="current-grade ${latest.grade}">${latest.grade}</span>
+                                <span>${latest.percentage}%</span>
+                            </div>
+                        </div>
+                        <table class="grade-details">
+                            <thead>
+                                <tr>
+                                    <th>Exam Type</th>
+                                    <th>Marks</th>
+                                    <th>Percentage</th>
+                                    <th>Grade</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>${allGrades}</tbody>
+                        </table>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function loadTeacherView() {
+            const classes = DataHandler.getClasses();
+            const classSelect = document.getElementById('gradeClass');
+            const gradeClassSelect = document.getElementById('gradeClassSelect');
+            
+            classes.forEach(cls => {
+                classSelect.innerHTML += `<option value="${cls.id}">${cls.name}</option>`;
+                gradeClassSelect.innerHTML += `<option value="${cls.id}">${cls.name}</option>`;
+            });
+            
+            loadGradeRecords();
+        }
+
+        function loadGradeRecords() {
+            const classId = document.getElementById('gradeClass').value;
+            const subject = document.getElementById('gradeSubject').value;
+            const grades = DataHandler.getGrades();
+            const users = DataHandler.getUsers();
+            const classes = DataHandler.getClasses();
+            
+            let filteredGrades = grades;
+            
+            if (classId !== 'all') {
+                const classStudents = users.filter(u => u.type === 'student' && 
+                    u.semester === classes.find(c => c.id === classId)?.semester);
+                filteredGrades = filteredGrades.filter(g => 
+                    classStudents.some(s => s.id === g.studentId)
+                );
+            }
+            
+            if (subject !== 'all') {
+                filteredGrades = filteredGrades.filter(g => g.subject === subject);
+            }
+            
+            displayGradeRecords(filteredGrades);
+        }
+
+        function displayGradeRecords(grades) {
+            const container = document.getElementById('gradeRecords');
+            const users = DataHandler.getUsers();
+            
+            if (grades.length === 0) {
+                container.innerHTML = '<p class="empty-state">No grade records found.</p>';
+                return;
+            }
+
+            // Group by exam
+            const grouped = grades.reduce((acc, grade) => {
+                const key = `${grade.subject}-${grade.examType}-${grade.examDate}`;
+                if (!acc[key]) {
+                    acc[key] = {
+                        subject: grade.subject,
+                        examType: grade.examType,
+                        examDate: grade.examDate,
+                        maxMarks: grade.maxMarks,
+                        grades: []
+                    };
+                }
+                acc[key].grades.push(grade);
+                return acc;
+            }, {});
+
+            container.innerHTML = Object.values(grouped).map(group => {
+                const average = group.grades.reduce((sum, g) => sum + g.percentage, 0) / group.grades.length;
+                
+                return `
+                    <div class="grade-group">
+                        <div class="group-header">
+                            <h4>${group.subject} - ${group.examType}</h4>
+                            <div class="exam-info">
+                                <span>Date: ${new Date(group.examDate).toLocaleDateString()}</span>
+                                <span>Max Marks: ${group.maxMarks}</span>
+                                <span>Average: ${average.toFixed(2)}%</span>
+                            </div>
+                        </div>
+                        <table class="grades-table">
+                            <thead>
+                                <tr>
+                                    <th>Student</th>
+                                    <th>Roll No</th>
+                                    <th>Marks</th>
+                                    <th>Percentage</th>
+                                    <th>Grade</th>
+                                    <th>Points</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${group.grades.map(grade => {
+                                    const student = users.find(u => u.id === grade.studentId);
+                                    return `
+                                        <tr>
+                                            <td>${student ? student.name : 'Unknown'}</td>
+                                            <td>${student ? student.rollNumber : 'N/A'}</td>
+                                            <td>${grade.marksObtained}/${grade.maxMarks}</td>
+                                            <td>${grade.percentage}%</td>
+                                            <td><span class="grade-badge ${grade.grade}">${grade.grade}</span></td>
+                                            <td>${grade.gradePoints}</td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function showAddGradeModal() {
+            document.getElementById('addGradeModal').style.display = 'flex';
+            document.getElementById('gradeDate').value = new Date().toISOString().split('T')[0];
+        }
+
+        function closeAddGradeModal() {
+            document.getElementById('addGradeModal').style.display = 'none';
+        }
+
+        function loadStudentsForGrading() {
+            const classId = document.getElementById('gradeClassSelect').value;
+            if (!classId) return;
+            
+            const classes = DataHandler.getClasses();
+            const selectedClass = classes.find(c => c.id === classId);
+            const students = DataHandler.getUsers().filter(u => 
+                u.type === 'student' && 
+                u.semester === selectedClass.semester && 
+                u.course === selectedClass.course
+            );
+            
+            const container = document.getElementById('studentsGradingList');
+            container.innerHTML = students.map(student => `
+                <div class="grading-student-item">
+                    <div class="student-info">
+                        <strong>${student.name}</strong>
+                        <span>${student.rollNumber}</span>
+                    </div>
+                    <div class="grading-inputs">
+                        <input type="number" 
+                               class="marks-input" 
+                               placeholder="Marks" 
+                               max="${document.getElementById('maxMarks').value}"
+                               onchange="updateGradePreview(this, '${student.id}')">
+                        <span class="grade-preview" id="preview_${student.id}">-</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateGradePreview(input, studentId) {
+            const maxMarks = parseInt(document.getElementById('maxMarks').value);
+            const marks = parseInt(input.value) || 0;
+            const percentage = maxMarks > 0 ? ((marks / maxMarks) * 100).toFixed(2) : 0;
+            const grade = calculateGrade(percentage);
+            
+            document.getElementById(`preview_${studentId}`).textContent = `${percentage}% - ${grade}`;
+            document.getElementById(`preview_${studentId}`).className = `grade-preview ${grade}`;
+        }
+
+        document.getElementById('addGradeForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const classId = document.getElementById('gradeClassSelect').value;
+            const subject = document.getElementById('gradeSubjectSelect').value;
+            const examType = document.getElementById('gradeType').value;
+            const examDate = document.getElementById('gradeDate').value;
+            const maxMarks = parseInt(document.getElementById('maxMarks').value);
+            
+            const classes = DataHandler.getClasses();
+            const selectedClass = classes.find(c => c.id === classId);
+            const students = DataHandler.getUsers().filter(u => 
+                u.type === 'student' && 
+                u.semester === selectedClass.semester && 
+                u.course === selectedClass.course
+            );
+            
+            students.forEach(student => {
+                const marksInput = document.querySelector(`.grading-student-item .student-info strong:contains("${student.name}")`)?.closest('.grading-student-item')?.querySelector('.marks-input');
+                const marksObtained = marksInput ? parseInt(marksInput.value) || 0 : 0;
+                const percentage = maxMarks > 0 ? ((marksObtained / maxMarks) * 100).toFixed(2) : 0;
+                const grade = calculateGrade(percentage);
+                const gradePoints = calculateGradePoints(percentage);
+                
+                const gradeRecord = {
+                    id: Date.now().toString() + Math.random(),
+                    studentId: student.id,
+                    studentName: student.name,
+                    rollNumber: student.rollNumber,
+                    classId: classId,
+                    className: selectedClass.name,
+                    subject: subject,
+                    examType: examType,
+                    examDate: examDate,
+                    maxMarks: maxMarks,
+                    marksObtained: marksObtained,
+                    percentage: parseFloat(percentage),
+                    grade: grade,
+                    gradePoints: gradePoints,
+                    addedBy: user.id,
+                    addedAt: new Date().toISOString()
+                };
+                
+                DataHandler.addGrade(gradeRecord);
+            });
+            
+            alert('✅ Grades added successfully!');
+            closeAddGradeModal();
+            loadGradeRecords();
+        });
+
+        function exportStudentGrades() {
+            const grades = DataHandler.getGrades().filter(g => g.studentId === user.id);
+            const exportData = {
+                student: user,
+                grades: grades,
+                summary: {
+                    cgpa: document.getElementById('studentCGPA').textContent,
+                    totalSubjects: document.getElementById('totalSubjects').textContent
+                }
+            };
+            
+            DataHandler.exportData(exportData, `grade_card_${user.rollNumber}.json`);
+        }
+
+        function exportAllGrades() {
+            const grades = DataHandler.getGrades();
+            DataHandler.exportData(grades, 'all_grades_export.json');
+        }
+
+        // Event Listeners
+        document.getElementById('menuBtn').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.add('active');
+        });
+
+        document.getElementById('closeSidebar').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.remove('active');
+        });
+    </script>
+
+    <style>
+        .grades-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .subject-grade-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .subject-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .subject-header h3 {
+            margin: 0;
+            font-size: 20px;
+        }
+        .subject-overview {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .current-grade {
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 18px;
+            background: rgba(255,255,255,0.2);
+        }
+        .grade-details {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .grade-details th,
+        .grade-details td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e1e1e1;
+        }
+        .grade-details th {
+            background: #f8f9fa;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .grade-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .grade-badge.A-plus { background: #27ae60; color: white; }
+        .grade-badge.A { background: #2ecc71; color: white; }
+        .grade-badge.B-plus { background: #3498db; color: white; }
+        .grade-badge.B { background: #9b59b6; color: white; }
+        .grade-badge.C-plus { background: #e67e22; color: white; }
+        .grade-badge.C { background: #e74c3c; color: white; }
+        .grade-badge.D { background: #f39c12; color: white; }
+        .grade-badge.F { background: #c0392b; color: white; }
+        .export-actions {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .grade-group {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .group-header {
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e1e1e1;
+        }
+        .group-header h4 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+        }
+        .exam-info {
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+            color: #666;
+        }
+        .grades-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .grades-table th,
+        .grades-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e1e1e1;
+        }
+        .grades-table th {
+            background: #34495e;
+            color: white;
+            font-weight: bold;
+        }
+        .grading-list {
+            max-height: 400px;
+            overflow-y: auto;
+            margin: 15px 0;
+            border: 1px solid #e1e1e1;
+            border-radius: 8px;
+        }
+        .grading-student-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            border-bottom: 1px solid #f1f1f1;
+        }
+        .grading-student-item:last-child {
+            border-bottom: none;
+        }
+        .grading-inputs {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .marks-input {
+            width: 80px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .grade-preview {
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: bold;
+            min-width: 80px;
+            text-align: center;
+        }
+    </style>
+</body>
+</html>

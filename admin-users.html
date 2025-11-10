@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management - Admin Panel</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="dashboard">
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>👑 Admin Panel</h2>
+                <button class="close-btn" id="closeSidebar">×</button>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="admin.html">📊 Dashboard</a></li>
+                <li><a href="admin-users.html" class="active">👥 User Management</a></li>
+                <li><a href="admin-messages.html">💬 Message Center</a></li>
+                <li><a href="admin-activities.html">📈 Activity Log</a></li>
+                <li><a href="admin-reports.html">📋 Reports</a></li>
+                <li><a href="#" id="logoutBtn">🚪 Logout</a></li>
+            </ul>
+        </nav>
+        <main class="main-content">
+            <header class="top-bar">
+                <button class="menu-btn" id="menuBtn">☰</button>
+                <h1>User Management</h1>
+                <div class="user-info">
+                    <span id="userName">Admin</span>
+                </div>
+            </header>
+            <div class="content">
+                <!-- Add User Section -->
+                <div class="section" id="addUserSection">
+                    <h2>➕ Add New User</h2>
+                    <form id="addUserForm" class="form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>👤 Full Name</label>
+                                <input type="text" id="userNameInput" required placeholder="Enter full name">
+                            </div>
+                            <div class="form-group">
+                                <label>📧 Email</label>
+                                <input type="email" id="userEmail" required placeholder="user@maharajacollege.ac.in">
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>🔑 Password</label>
+                                <input type="password" id="userPassword" required placeholder="Enter password" value="123456">
+                                <small>Default password: 123456</small>
+                            </div>
+                            <div class="form-group">
+                                <label>👥 User Type</label>
+                                <select id="userType" required onchange="toggleUserFields()">
+                                    <option value="student">🎓 Student</option>
+                                    <option value="teacher">👨‍🏫 Teacher</option>
+                                    <option value="admin">👑 Admin</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Student Specific Fields -->
+                        <div id="studentFields" style="display:none;">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>🎯 Roll Number</label>
+                                    <input type="text" id="rollNumber" placeholder="BCA23001">
+                                </div>
+                                <div class="form-group">
+                                    <label>📚 Semester</label>
+                                    <select id="semester">
+                                        <option value="3">Semester 3</option>
+                                        <option value="4">Semester 4</option>
+                                        <option value="5">Semester 5</option>
+                                        <option value="6">Semester 6</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>📞 Phone Number</label>
+                                <input type="tel" id="studentPhone" placeholder="9876543210">
+                            </div>
+                            <div class="form-group">
+                                <label>📅 Date of Birth (for login)</label>
+                                <input type="date" id="studentDOB" required>
+                            </div>
+                        </div>
+
+                        <!-- Teacher Specific Fields -->
+                        <div id="teacherFields" style="display:none;">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>🏫 Department</label>
+                                    <input type="text" id="department" value="Computer Science">
+                                </div>
+                                <div class="form-group">
+                                    <label>💼 Designation</label>
+                                    <input type="text" id="designation" placeholder="Assistant Professor">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>📞 Phone Number</label>
+                                <input type="tel" id="teacherPhone" placeholder="9876543200">
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">✅ Add User</button>
+                            <button type="button" class="btn btn-secondary" onclick="clearUserForm()">🔄 Clear Form</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Import Section -->
+                <div class="section">
+                    <h2>📁 Import Student Data</h2>
+                    <div class="import-section">
+                        <div class="form-group">
+                            <label>📋 Paste JSON Student Data</label>
+                            <textarea id="jsonDataInput" rows="8" placeholder='Paste your JSON data here in format:
+[
+  {
+    "name": "Student Name",
+    "dob": "2002-05-15",
+    "rollNumber": "BCA23001",
+    "email": "student@maharajacollege.ac.in",
+    "semester": "3",
+    "course": "BCA",
+    "phone": "9876543210"
+  }
+]'></textarea>
+                        </div>
+                        <div class="form-actions">
+                            <button class="btn btn-primary" onclick="importUserData()">📥 Import Students</button>
+                            <button class="btn btn-secondary" onclick="clearJsonInput()">🔄 Clear</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Users List -->
+                <div class="section">
+                    <div class="section-header">
+                        <h2>👥 All Users</h2>
+                        <div class="search-bar">
+                            <input type="text" id="searchUsers" placeholder="🔍 Search users..." onkeyup="searchUsers()">
+                        </div>
+                    </div>
+                    <div id="usersList"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/dataHandler.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        const user = DataHandler.getCurrentUser();
+        if (!user || user.type !== 'admin') {
+            window.location.href = 'index.html';
+        }
+
+        document.getElementById('userName').textContent = user.name;
+
+        function toggleUserFields() {
+            const userType = document.getElementById('userType').value;
+            document.getElementById('studentFields').style.display = userType === 'student' ? 'block' : 'none';
+            document.getElementById('teacherFields').style.display = userType === 'teacher' ? 'block' : 'none';
+        }
+
+        function clearUserForm() {
+            document.getElementById('addUserForm').reset();
+            toggleUserFields();
+        }
+
+        function clearJsonInput() {
+            document.getElementById('jsonDataInput').value = '';
+        }
+
+        async function handleAddUser(e) {
+            e.preventDefault();
+            
+            const userType = document.getElementById('userType').value;
+            const name = document.getElementById('userNameInput').value;
+            const email = document.getElementById('userEmail').value;
+            const password = document.getElementById('userPassword').value;
+
+            if (DataHandler.userExists(email)) {
+                alert('❌ User with this email already exists!');
+                return;
+            }
+
+            const hashedPassword = await Auth.hashPassword(password);
+            const newUser = {
+                id: Date.now().toString(),
+                name,
+                email,
+                password: hashedPassword,
+                type: userType,
+                phone: '',
+                joinDate: new Date().toISOString().split('T')[0]
+            };
+
+            // Add user-specific fields
+            if (userType === 'student') {
+                newUser.rollNumber = document.getElementById('rollNumber').value;
+                newUser.semester = document.getElementById('semester').value;
+                newUser.course = 'BCA';
+                newUser.phone = document.getElementById('studentPhone').value;
+                newUser.dob = document.getElementById('studentDOB').value;
+            } else if (userType === 'teacher') {
+                newUser.department = document.getElementById('department').value;
+                newUser.designation = document.getElementById('designation').value;
+                newUser.phone = document.getElementById('teacherPhone').value;
+            }
+
+            DataHandler.addUser(newUser);
+            alert(`✅ ${userType.charAt(0).toUpperCase() + userType.slice(1)} added successfully!`);
+            clearUserForm();
+            loadUsers();
+        }
+
+        function importUserData() {
+            const jsonInput = document.getElementById('jsonDataInput').value;
+            
+            if (!jsonInput.trim()) {
+                alert('Please paste JSON data first!');
+                return;
+            }
+
+            try {
+                const jsonData = JSON.parse(jsonInput);
+                
+                if (!Array.isArray(jsonData)) {
+                    throw new Error('JSON data should be an array of student objects');
+                }
+
+                // Validate required fields
+                for (const student of jsonData) {
+                    if (!student.name || !student.dob) {
+                        throw new Error('Each student must have "name" and "dob" fields');
+                    }
+                }
+
+                const importedUsers = DataHandler.importUserData(jsonData);
+                alert(`✅ Successfully imported ${jsonData.length} students!`);
+                document.getElementById('jsonDataInput').value = '';
+                loadUsers();
+                
+            } catch (error) {
+                alert(`❌ Error importing data: ${error.message}`);
+            }
+        }
+
+        function searchUsers() {
+            const searchTerm = document.getElementById('searchUsers').value.toLowerCase();
+            const users = DataHandler.getUsers();
+            const container = document.getElementById('usersList');
+            
+            const filteredUsers = users.filter(user => 
+                user.name.toLowerCase().includes(searchTerm) ||
+                user.email.toLowerCase().includes(searchTerm) ||
+                (user.rollNumber && user.rollNumber.toLowerCase().includes(searchTerm))
+            );
+
+            displayUsers(filteredUsers);
+        }
+
+        function displayUsers(users) {
+            const container = document.getElementById('usersList');
+            
+            if (users.length === 0) {
+                container.innerHTML = '<p class="empty-state">No users found</p>';
+                return;
+            }
+
+            container.innerHTML = users.map(user => `
+                <div class="user-card">
+                    <div class="user-header">
+                        <div class="user-info-card">
+                            <h3>${user.name}</h3>
+                            <span class="user-badge ${user.type}">${getUserBadge(user.type)} ${user.type.toUpperCase()}</span>
+                        </div>
+                        <div class="user-actions">
+                            <button class="btn btn-small btn-secondary" onclick="editUser('${user.id}')">✏️ Edit</button>
+                            ${user.id !== DataHandler.getCurrentUser().id ? 
+                                `<button class="btn btn-small btn-danger" onclick="deleteUser('${user.id}')">🗑️ Delete</button>` : 
+                                '<span class="current-user">👤 Current</span>'
+                            }
+                        </div>
+                    </div>
+                    <div class="user-details">
+                        <p>📧 ${user.email}</p>
+                        ${user.rollNumber ? `<p>🎯 Roll No: ${user.rollNumber}</p>` : ''}
+                        ${user.department ? `<p>🏫 ${user.department}</p>` : ''}
+                        ${user.designation ? `<p>💼 ${user.designation}</p>` : ''}
+                        ${user.phone ? `<p>📞 ${user.phone}</p>` : ''}
+                        ${user.dob ? `<p>📅 DOB: ${user.dob}</p>` : ''}
+                        <p>📅 Joined: ${user.joinDate}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getUserBadge(type) {
+            const badges = {
+                'student': '🎓',
+                'teacher': '👨‍🏫',
+                'admin': '👑'
+            };
+            return badges[type] || '👤';
+        }
+
+        function deleteUser(userId) {
+            if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+                DataHandler.deleteUser(userId);
+                loadUsers();
+            }
+        }
+
+        function editUser(userId) {
+            // Implementation for edit user
+            alert('Edit feature coming soon!');
+        }
+
+        function loadUsers() {
+            searchUsers();
+        }
+
+        // Event Listeners
+        document.getElementById('menuBtn').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.add('active');
+        });
+
+        document.getElementById('closeSidebar').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.remove('active');
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            DataHandler.logout();
+            window.location.href = 'index.html';
+        });
+
+        document.getElementById('addUserForm').addEventListener('submit', handleAddUser);
+
+        // Check URL hash for add user section
+        if (window.location.hash === '#addUser') {
+            document.getElementById('addUserSection').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        loadUsers();
+        toggleUserFields();
+    </script>
+</body>
+</html>

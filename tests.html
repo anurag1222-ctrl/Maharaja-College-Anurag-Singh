@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tests - Maharaja College</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="dashboard">
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2 id="portalTitle">📚 Portal</h2>
+                <button class="close-btn" id="closeSidebar">×</button>
+            </div>
+            <ul class="nav-menu" id="navMenu"></ul>
+        </nav>
+        <main class="main-content">
+            <header class="top-bar">
+                <button class="menu-btn" id="menuBtn">☰</button>
+                <h1>📝 Tests</h1>
+                <div class="user-info">
+                    <span id="userName">User</span>
+                </div>
+            </header>
+            <div class="content">
+                <!-- Teacher Actions -->
+                <div id="teacherActions" style="display:none;" class="section">
+                    <div class="section-header">
+                        <h2>👨‍🏫 Teacher Actions</h2>
+                        <a href="test-upload.html" class="btn btn-primary">➕ Create New Test</a>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="btn btn-secondary" onclick="filterTests('all')">📋 All Tests</button>
+                        <button class="btn btn-secondary" onclick="filterTests('published')">📢 Published</button>
+                        <button class="btn btn-secondary" onclick="filterTests('draft')">💾 Drafts</button>
+                    </div>
+                </div>
+
+                <!-- Tests List -->
+                <div class="section">
+                    <div class="section-header">
+                        <h2 id="testsHeading">📝 Available Tests</h2>
+                        <div class="search-bar">
+                            <input type="text" id="searchTests" placeholder="🔍 Search tests..." onkeyup="searchTests()">
+                        </div>
+                    </div>
+                    <div id="testsList" class="tests-grid"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/dataHandler.js"></script>
+    <script>
+        const user = DataHandler.getCurrentUser();
+        if (!user) window.location.href = 'index.html';
+        
+        const isTeacher = user.type === 'teacher' || user.type === 'admin';
+        document.getElementById('portalTitle').textContent = isTeacher ? '👨‍🏫 Teacher Portal' : '📚 Student Portal';
+        document.getElementById('userName').textContent = user.name;
+        
+        const navMenu = document.getElementById('navMenu');
+        const dashboardLink = isTeacher ? 'teacherDashboard.html' : 'studentDashboard.html';
+        navMenu.innerHTML = `
+            <li><a href="${dashboardLink}">📊 Dashboard</a></li>
+            <li><a href="materials.html">📚 Materials</a></li>
+            <li><a href="tests.html" class="active">📝 Tests</a></li>
+            <li><a href="performance.html">📈 Performance</a></li>
+            <li><a href="notices.html">📢 Notices</a></li>
+            <li><a href="chat.html">💬 Group Chat</a></li>
+            <li><a href="#" id="logoutBtn">🚪 Logout</a></li>
+        `;
+        
+        document.getElementById('logoutBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            DataHandler.logout();
+            window.location.href = 'index.html';
+        });
+
+        let currentFilter = 'all';
+
+        function filterTests(status) {
+            currentFilter = status;
+            document.getElementById('testsHeading').textContent = 
+                status === 'all' ? '📝 All Tests' :
+                status === 'published' ? '📢 Published Tests' :
+                '💾 Draft Tests';
+            searchTests();
+        }
+        
+        function searchTests() {
+            const searchTerm = document.getElementById('searchTests').value.toLowerCase();
+            const tests = DataHandler.getTests();
+            const container = document.getElementById('testsList');
+            
+            let filteredTests = tests;
+            
+            // Apply status filter for teachers
+            if (isTeacher && currentFilter !== 'all') {
+                filteredTests = filteredTests.filter(test => test.status === currentFilter);
+            }
+            
+            // Apply search filter
+            if (searchTerm) {
+                filteredTests = filteredTests.filter(test => 
+                    test.title.toLowerCase().includes(searchTerm) ||
+                    test.subject.toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            if (filteredTests.length === 0) {
+                container.innerHTML = '<p class="empty-state">No tests found matching your search.</p>';
+                return;
+            }
+            
+            if (isTeacher) {
+                container.innerHTML = filteredTests.map(t => {
+                    const statusBadge = t.status === 'published' ? 
+                        '<span class="status-badge published">📢 Published</span>' : 
+                        '<span class="status-badge draft">💾 Draft</span>';
+                    
+                    return `
+                        <div class="test-card">
+                            <div class="test-header">
+                                <h3>${t.title}</h3>
+                                ${statusBadge}
+                            </div>
+                            <p>📚 ${t.subject}</p>
+                            <p>📝 ${t.questions.length} Questions</p>
+                            <p>⏱️ ${t.duration} minutes</p>
+                            <p>🎯 ${t.type.charAt(0).toUpperCase() + t.type.slice(1)}</p>
+                            <small>📅 Created: ${new Date(t.createdDate).toLocaleDateString()}</small>
+                            <div class="test-actions">
+                                <button class="btn btn-small" onclick="viewResults('${t.id}')">📊 Results</button>
+                                ${t.status === 'draft' ? 
+                                    `<button class="btn btn-small btn-success" onclick="publishTest('${t.id}')">📢 Publish</button>` : 
+                                    `<button class="btn btn-small btn-secondary" onclick="unpublishTest('${t.id}')">💾 Unpublish</button>`
+                                }
+                                <button class="btn btn-small btn-danger" onclick="deleteTest('${t.id}')">🗑️ Delete</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                const submissions = DataHandler.getSubmissions().filter(s => s.studentId === user.id);
+                const publishedTests = filteredTests.filter(t => t.status === 'published');
+                
+                container.innerHTML = publishedTests.map(t => {
+                    const attempted = submissions.find(s => s.testId === t.id);
+                    return `
+                        <div class="test-card">
+                            <h3>${t.title}</h3>
+                            <p>📚 ${t.subject}</p>
+                            <p>📝 ${t.questions.length} Questions</p>
+                            <p>⏱️ ${t.duration} minutes</p>
+                            <p>🎯 ${t.type.charAt(0).toUpperCase() + t.type.slice(1)}</p>
+                            <small>📅 Created: ${new Date(t.createdDate).toLocaleDateString()}</small>
+                            ${attempted ? 
+                                `<p class="score">🎯 Score: ${attempted.score}/${t.questions.length} (${attempted.percentage}%)</p>` :
+                                `<a href="attemptTest.html?id=${t.id}" class="btn btn-small btn-primary">🚀 Attempt Test</a>`
+                            }
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+        
+        function viewResults(testId) {
+            window.location.href = `performance.html?testId=${testId}`;
+        }
+        
+        function publishTest(testId) {
+            const tests = DataHandler.getTests();
+            const testIndex = tests.findIndex(t => t.id === testId);
+            if (testIndex !== -1) {
+                tests[testIndex].status = 'published';
+                DataHandler.saveToStorage('school_tests', tests);
+                alert('✅ Test published successfully!');
+                searchTests();
+            }
+        }
+        
+        function unpublishTest(testId) {
+            const tests = DataHandler.getTests();
+            const testIndex = tests.findIndex(t => t.id === testId);
+            if (testIndex !== -1) {
+                tests[testIndex].status = 'draft';
+                DataHandler.saveToStorage('school_tests', tests);
+                alert('✅ Test unpublished and saved as draft!');
+                searchTests();
+            }
+        }
+        
+        function deleteTest(testId) {
+            if (confirm('Are you sure you want to delete this test? This action cannot be undone.')) {
+                const tests = DataHandler.getTests().filter(t => t.id !== testId);
+                DataHandler.saveToStorage('school_tests', tests);
+                searchTests();
+            }
+        }
+        
+        // Show teacher actions if user is teacher
+        if (isTeacher) {
+            document.getElementById('teacherActions').style.display = 'block';
+        }
+        
+        document.getElementById('menuBtn').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.add('active');
+        });
+        
+        document.getElementById('closeSidebar').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.remove('active');
+        });
+        
+        // Add CSS for status badges
+        const style = document.createElement('style');
+        style.textContent = `
+            .status-badge {
+                padding: 4px 8px;
+                border-radius: 12px;
+                font-size: 12px;
+                font-weight: bold;
+            }
+            .status-badge.published {
+                background: #d4edda;
+                color: #155724;
+            }
+            .status-badge.draft {
+                background: #fff3cd;
+                color: #856404;
+            }
+            .test-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                margin-bottom: 10px;
+            }
+        `;
+        document.head.appendChild(style);
+        
+        searchTests();
+    </script>
+</body>
+</html>

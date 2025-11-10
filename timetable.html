@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timetable - Maharaja College</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="dashboard">
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2 id="portalTitle">📚 Portal</h2>
+                <button class="close-btn" id="closeSidebar">×</button>
+            </div>
+            <ul class="nav-menu" id="navMenu"></ul>
+        </nav>
+        <main class="main-content">
+            <header class="top-bar">
+                <button class="menu-btn" id="menuBtn">☰</button>
+                <h1>📅 Class Timetable</h1>
+                <div class="user-info">
+                    <span id="userName">User</span>
+                </div>
+            </header>
+            <div class="content">
+                <!-- Teacher Actions -->
+                <div id="teacherActions" style="display:none;" class="section">
+                    <div class="section-header">
+                        <h2>👨‍🏫 Manage Timetable</h2>
+                        <button class="btn btn-primary" onclick="showTimetableModal()">➕ Add Timetable</button>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">
+                        <h2>📅 Weekly Schedule</h2>
+                        <div class="view-options">
+                            <button class="btn btn-small btn-secondary" onclick="changeView('current')">Current Week</button>
+                            <button class="btn btn-small btn-secondary" onclick="exportTimetable()">📤 Export</button>
+                        </div>
+                    </div>
+                    
+                    <div id="timetableContainer" class="timetable-container"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Timetable Modal -->
+    <div id="timetableModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📅 Add/Edit Timetable</h3>
+                <button class="close-btn" onclick="closeTimetableModal()">×</button>
+            </div>
+            <form id="timetableForm" class="form">
+                <div class="form-group">
+                    <label>🏫 Class</label>
+                    <select id="timetableClass" required>
+                        <option value="">Select Class</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>📅 Day</label>
+                    <select id="timetableDay" required>
+                        <option value="Monday">Monday</option>
+                        <option value="Tuesday">Tuesday</option>
+                        <option value="Wednesday">Wednesday</option>
+                        <option value="Thursday">Thursday</option>
+                        <option value="Friday">Friday</option>
+                        <option value="Saturday">Saturday</option>
+                    </select>
+                </div>
+                
+                <div id="periodsContainer">
+                    <h4>⏰ Periods</h4>
+                    <div class="period-item">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Time</label>
+                                <input type="text" class="period-time" placeholder="09:00-10:00" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Subject</label>
+                                <input type="text" class="period-subject" placeholder="Java Programming" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Teacher</label>
+                                <select class="period-teacher" required>
+                                    <option value="">Select Teacher</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <button type="button" class="btn btn-secondary" onclick="addPeriod()">➕ Add Period</button>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">💾 Save Timetable</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeTimetableModal()">❌ Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/dataHandler.js"></script>
+    <script>
+        const user = DataHandler.getCurrentUser();
+        if (!user) window.location.href = 'index.html';
+        
+        const isTeacher = user.type === 'teacher' || user.type === 'admin';
+        document.getElementById('portalTitle').textContent = isTeacher ? '👨‍🏫 Teacher Portal' : '🎓 Student Portal';
+        document.getElementById('userName').textContent = user.name;
+        
+        // Navigation setup
+        const navMenu = document.getElementById('navMenu');
+        const dashboardLink = user.type === 'student' ? 'studentDashboard.html' : 'teacherDashboard.html';
+        navMenu.innerHTML = `
+            <li><a href="${dashboardLink}">📊 Dashboard</a></li>
+            <li><a href="student-profiles.html">👤 Profiles</a></li>
+            <li><a href="timetable.html" class="active">📅 Timetable</a></li>
+            <li><a href="attendance.html">📋 Attendance</a></li>
+            <li><a href="grades.html">📊 Grades</a></li>
+            <li><a href="fees.html">💰 Fees</a></li>
+            <li><a href="materials.html">📚 Materials</a></li>
+            <li><a href="tests.html">📝 Tests</a></li>
+            <li><a href="performance.html">📈 Performance</a></li>
+            <li><a href="notices.html">📢 Notices</a></li>
+            <li><a href="chat.html">💬 Group Chat</a></li>
+            <li><a href="#" id="logoutBtn">🚪 Logout</a></li>
+        `;
+
+        document.getElementById('logoutBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            DataHandler.logout();
+            window.location.href = 'index.html';
+        });
+
+        if (isTeacher) {
+            document.getElementById('teacherActions').style.display = 'block';
+        }
+
+        const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const timeSlots = ['09:00-10:00', '10:00-11:00', '11:15-12:15', '12:15-01:15', '02:00-03:00', '03:00-04:00'];
+
+        function loadTimetable() {
+            const timetable = DataHandler.getTimetable();
+            const classes = DataHandler.getClasses();
+            const users = DataHandler.getUsers();
+            
+            let studentClass = null;
+            if (user.type === 'student') {
+                studentClass = classes.find(c => c.semester === user.semester && c.course === user.course);
+            }
+
+            const container = document.getElementById('timetableContainer');
+            let html = '<div class="timetable">';
+            
+            // Header row
+            html += '<div class="timetable-header">';
+            html += '<div class="time-slot">Time</div>';
+            days.forEach(day => {
+                html += `<div class="day-header">${day}</div>`;
+            });
+            html += '</div>';
+            
+            // Time slots rows
+            timeSlots.forEach(timeSlot => {
+                html += `<div class="timetable-row">`;
+                html += `<div class="time-slot">${timeSlot}</div>`;
+                
+                days.forEach(day => {
+                    const dayTimetable = timetable.find(t => t.day === day);
+                    let period = null;
+                    
+                    if (dayTimetable) {
+                        period = dayTimetable.periods.find(p => p.time === timeSlot);
+                    }
+                    
+                    if (period) {
+                        const teacher = users.find(u => u.id === period.teacherId);
+                        html += `
+                            <div class="period-cell">
+                                <strong>${period.subject}</strong>
+                                <small>${teacher ? teacher.name : 'Teacher'}</small>
+                                ${studentClass ? `<small>${studentClass.name}</small>` : ''}
+                            </div>
+                        `;
+                    } else {
+                        html += '<div class="period-cell empty">Free</div>';
+                    }
+                });
+                
+                html += `</div>`;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function showTimetableModal() {
+            const classes = DataHandler.getClasses();
+            const teachers = DataHandler.getUsers().filter(u => u.type === 'teacher');
+            
+            // Populate class dropdown
+            const classSelect = document.getElementById('timetableClass');
+            classSelect.innerHTML = '<option value="">Select Class</option>';
+            classes.forEach(cls => {
+                classSelect.innerHTML += `<option value="${cls.id}">${cls.name}</option>`;
+            });
+            
+            // Populate teacher dropdowns
+            const teacherSelects = document.querySelectorAll('.period-teacher');
+            teacherSelects.forEach(select => {
+                select.innerHTML = '<option value="">Select Teacher</option>';
+                teachers.forEach(teacher => {
+                    select.innerHTML += `<option value="${teacher.id}">${teacher.name}</option>`;
+                });
+            });
+            
+            document.getElementById('timetableModal').style.display = 'flex';
+        }
+
+        function closeTimetableModal() {
+            document.getElementById('timetableModal').style.display = 'none';
+        }
+
+        function addPeriod() {
+            const container = document.getElementById('periodsContainer');
+            const teachers = DataHandler.getUsers().filter(u => u.type === 'teacher');
+            
+            const periodDiv = document.createElement('div');
+            periodDiv.className = 'period-item';
+            periodDiv.innerHTML = `
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Time</label>
+                        <input type="text" class="period-time" placeholder="09:00-10:00" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Subject</label>
+                        <input type="text" class="period-subject" placeholder="Java Programming" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Teacher</label>
+                        <select class="period-teacher" required>
+                            <option value="">Select Teacher</option>
+                            ${teachers.map(t => `<option value="${t.id}">${t.name}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <button type="button" class="btn btn-small btn-danger" onclick="removePeriod(this)">🗑️</button>
+                    </div>
+                </div>
+            `;
+            container.appendChild(periodDiv);
+        }
+
+        function removePeriod(button) {
+            if (document.querySelectorAll('.period-item').length > 1) {
+                button.closest('.period-item').remove();
+            }
+        }
+
+        document.getElementById('timetableForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const classId = document.getElementById('timetableClass').value;
+            const day = document.getElementById('timetableDay').value;
+            
+            const periods = Array.from(document.querySelectorAll('.period-item')).map(item => ({
+                time: item.querySelector('.period-time').value,
+                subject: item.querySelector('.period-subject').value,
+                teacherId: item.querySelector('.period-teacher').value
+            }));
+            
+            const timetableEntry = {
+                id: Date.now().toString(),
+                classId,
+                day,
+                periods
+            };
+            
+            DataHandler.addTimetableEntry(timetableEntry);
+            alert('✅ Timetable saved successfully!');
+            closeTimetableModal();
+            loadTimetable();
+        });
+
+        function exportTimetable() {
+            const timetable = DataHandler.getTimetable();
+            const classes = DataHandler.getClasses();
+            
+            const exportData = timetable.map(entry => {
+                const classInfo = classes.find(c => c.id === entry.classId);
+                return {
+                    class: classInfo ? classInfo.name : 'Unknown',
+                    day: entry.day,
+                    periods: entry.periods
+                };
+            });
+            
+            DataHandler.exportData(exportData, 'timetable_export.json');
+        }
+
+        function changeView(view) {
+            // Implementation for different view modes
+            loadTimetable();
+        }
+
+        // Event Listeners
+        document.getElementById('menuBtn').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.add('active');
+        });
+
+        document.getElementById('closeSidebar').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.remove('active');
+        });
+
+        loadTimetable();
+    </script>
+
+    <style>
+        .timetable-container {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .timetable {
+            display: grid;
+            grid-template-columns: 120px repeat(6, 1fr);
+            width: 100%;
+        }
+        .timetable-header {
+            display: contents;
+        }
+        .timetable-header > div {
+            background: #2c3e50;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+            border-right: 1px solid #34495e;
+        }
+        .timetable-header > div:last-child {
+            border-right: none;
+        }
+        .timetable-row {
+            display: contents;
+        }
+        .time-slot {
+            background: #34495e;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+            border-bottom: 1px solid #4a6572;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .period-cell {
+            padding: 15px;
+            border: 1px solid #e1e1e1;
+            border-top: none;
+            border-left: none;
+            min-height: 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            background: #f8f9fa;
+        }
+        .period-cell:last-child {
+            border-right: none;
+        }
+        .period-cell.empty {
+            background: #ecf0f1;
+            color: #7f8c8d;
+            font-style: italic;
+        }
+        .period-cell strong {
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        .period-cell small {
+            color: #666;
+            font-size: 12px;
+        }
+        .day-header {
+            background: #3498db;
+        }
+        .period-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #3498db;
+        }
+        .view-options {
+            display: flex;
+            gap: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .timetable {
+                grid-template-columns: 80px repeat(6, 1fr);
+                font-size: 12px;
+            }
+            .time-slot, .period-cell {
+                padding: 8px;
+            }
+        }
+    </style>
+</body>
+</html>

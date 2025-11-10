@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fee Management - Maharaja College</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="dashboard">
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2 id="portalTitle">📚 Portal</h2>
+                <button class="close-btn" id="closeSidebar">×</button>
+            </div>
+            <ul class="nav-menu" id="navMenu"></ul>
+        </nav>
+        <main class="main-content">
+            <header class="top-bar">
+                <button class="menu-btn" id="menuBtn">☰</button>
+                <h1>💰 Fee Management</h1>
+                <div class="user-info">
+                    <span id="userName">User</span>
+                </div>
+            </header>
+            <div class="content">
+                <!-- Admin Actions -->
+                <div id="adminActions" style="display:none;" class="section">
+                    <div class="section-header">
+                        <h2>👑 Fee Management</h2>
+                        <button class="btn btn-primary" onclick="showAddFeeModal()">💰 Create Fee Structure</button>
+                    </div>
+                </div>
+
+                <!-- Student View -->
+                <div id="studentView" style="display:none;">
+                    <div class="section">
+                        <h2>💰 Your Fee Status</h2>
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <h3>Total Fees</h3>
+                                <p class="stat-number" id="totalFees">₹0</p>
+                                <small>This Semester</small>
+                            </div>
+                            <div class="stat-card">
+                                <h3>Paid Amount</h3>
+                                <p class="stat-number" id="paidAmount">₹0</p>
+                                <small>Amount Paid</small>
+                            </div>
+                            <div class="stat-card">
+                                <h3>Balance</h3>
+                                <p class="stat-number" id="balanceAmount">₹0</p>
+                                <small>Pending Payment</small>
+                            </div>
+                            <div class="stat-card">
+                                <h3>Status</h3>
+                                <p class="stat-number" id="feeStatus">-</p>
+                                <small>Current</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <h2>📋 Fee Breakdown</h2>
+                        <div id="feeBreakdown" class="fee-breakdown"></div>
+                    </div>
+
+                    <div class="section">
+                        <h2>💳 Payment History</h2>
+                        <div id="paymentHistory" class="payment-history"></div>
+                        <div class="export-actions">
+                            <button class="btn btn-secondary" onclick="exportFeeReceipt()">📤 Export Fee Receipt</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Admin View -->
+                <div id="adminView" style="display:none;">
+                    <div class="section">
+                        <div class="section-header">
+                            <h2>📊 Fee Records</h2>
+                            <div class="filter-options">
+                                <select id="feeClass" onchange="loadFeeRecords()">
+                                    <option value="all">All Classes</option>
+                                </select>
+                                <select id="feeStatusFilter" onchange="loadFeeRecords()">
+                                    <option value="all">All Status</option>
+                                    <option value="Paid">Paid</option>
+                                    <option value="Partial">Partial</option>
+                                    <option value="Pending">Pending</option>
+                                </select>
+                                <button class="btn btn-secondary" onclick="exportFeeReports()">📤 Export Report</button>
+                            </div>
+                        </div>
+                        <div id="feeRecords" class="fee-records-container"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add Fee Modal -->
+    <div id="addFeeModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>💰 Create Fee Structure</h3>
+                <button class="close-btn" onclick="closeAddFeeModal()">×</button>
+            </div>
+            <form id="addFeeForm" class="form">
+                <div class="form-group">
+                    <label>🏫 Class</label>
+                    <select id="feeClassSelect" required onchange="loadStudentsForFee()">
+                        <option value="">Select Class</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>📅 Academic Year</label>
+                    <input type="text" id="academicYear" value="2024-2025" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>📝 Fee Type</label>
+                    <select id="feeType" required>
+                        <option value="Semester">Semester Fee</option>
+                        <option value="Annual">Annual Fee</option>
+                        <option value="Exam">Examination Fee</option>
+                        <option value="Library">Library Fee</option>
+                        <option value="Hostel">Hostel Fee</option>
+                    </select>
+                </div>
+                
+                <h4>💵 Fee Components</h4>
+                <div id="feeComponents">
+                    <div class="fee-component">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <input type="text" class="component-name" placeholder="Component Name" value="Tuition Fee" required>
+                            </div>
+                            <div class="form-group">
+                                <input type="number" class="component-amount" placeholder="Amount" value="15000" required>
+                            </div>
+                            <div class="form-group">
+                                <button type="button" class="btn btn-small btn-danger" onclick="removeComponent(this)">🗑️</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <button type="button" class="btn btn-secondary" onclick="addFeeComponent()">➕ Add Component</button>
+                
+                <div class="form-group">
+                    <label>💰 Total Amount</label>
+                    <input type="number" id="totalFeeAmount" readonly>
+                </div>
+                
+                <div class="form-group">
+                    <label>📅 Due Date</label>
+                    <input type="date" id="dueDate" required>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">💾 Create Fee Structure</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeAddFeeModal()">❌ Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Record Payment Modal -->
+    <div id="recordPaymentModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>💳 Record Payment</h3>
+                <button class="close-btn" onclick="closeRecordPaymentModal()">×</button>
+            </div>
+            <form id="recordPaymentForm" class="form">
+                <div class="form-group">
+                    <label>👤 Student</label>
+                    <p id="paymentStudentInfo" class="student-info-display"></p>
+                </div>
+                
+                <div class="form-group">
+                    <label>💰 Total Fee</label>
+                    <p id="paymentTotalFee" class="fee-amount-display"></p>
+                </div>
+                
+                <div class="form-group">
+                    <label>💵 Paid Amount</label>
+                    <p id="paymentPaidAmount" class="fee-amount-display"></p>
+                </div>
+                
+                <div class="form-group">
+                    <label>⚖️ Balance</label>
+                    <p id="paymentBalance" class="fee-amount-display"></p>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>💵 Payment Amount</label>
+                        <input type="number" id="paymentAmount" required>
+                    </div>
+                    <div class="form-group">
+                        <label>📅 Payment Date</label>
+                        <input type="date" id="paymentDate" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>💳 Payment Method</label>
+                    <select id="paymentMethod" required>
+                        <option value="Cash">Cash</option>
+                        <option value="Bank Transfer">Bank Transfer</option>
+                        <option value="Cheque">Cheque</option>
+                        <option value="Online">Online Payment</option>
+                        <option value="Card">Card</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>📝 Transaction ID</label>
+                    <input type="text" id="transactionId" placeholder="Optional">
+                </div>
+                
+                <div class="form-group">
+                    <label>📄 Remarks</label>
+                    <textarea id="paymentRemarks" rows="3" placeholder="Any additional remarks..."></textarea>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">💾 Record Payment</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeRecordPaymentModal()">❌ Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/dataHandler.js"></script>
+    <script>
+        const user = DataHandler.getCurrentUser();
+        if (!user) window.location.href = 'index.html';
+        
+        const isStudent = user.type === 'student';
+        const isAdmin = user.type === 'admin' || user.type === 'teacher';
+        
+        document.getElementById('portalTitle').textContent = isStudent ? '🎓 Student Portal' : '👑 Admin Portal';
+        document.getElementById('userName').textContent = user.name;
+        
+        // Navigation setup
+        const navMenu = document.getElementById('navMenu');
+        const dashboardLink = isStudent ? 'studentDashboard.html' : 'teacherDashboard.html';
+        navMenu.innerHTML = `
+            <li><a href="${dashboardLink}">📊 Dashboard</a></li>
+            <li><a href="student-profiles.html">👤 Profiles</a></li>
+            <li><a href="timetable.html">📅 Timetable</a></li>
+            <li><a href="attendance.html">📋 Attendance</a></li>
+            <li><a href="grades.html">📊 Grades</a></li>
+            <li><a href="fees.html" class="active">💰 Fees</a></li>
+            <li><a href="materials.html">📚 Materials</a></li>
+            <li><a href="tests.html">📝 Tests</a></li>
+            <li><a href="performance.html">📈 Performance</a></li>
+            <li><a href="notices.html">📢 Notices</a></li>
+            <li><a href="chat.html">💬 Group Chat</a></li>
+            <li><a href="#" id="logoutBtn">🚪 Logout</a></li>
+        `;
+
+        document.getElementById('logoutBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            DataHandler.logout();
+            window.location.href = 'index.html';
+        });
+
+        let currentFeeRecord = null;
+
+        if (isStudent) {
+            document.getElementById('studentView').style.display = 'block';
+            loadStudentFees();
+        } else {
+            document.getElementById('adminActions').style.display = 'block';
+            document.getElementById('adminView').style.display = 'block';
+            loadAdminView();
+        }
+
+        function loadStudentFees() {
+            const feeRecords = DataHandler.getFeeRecords().filter(f => f.studentId === user.id);
+            const currentRecord = feeRecords.length > 0 ? feeRecords[0] : null;
+            
+            if (currentRecord) {
+                document.getElementById('totalFees').textContent = `₹${currentRecord.totalAmount}`;
+                document.getElementById('paidAmount').textContent = `₹${currentRecord.paidAmount}`;
+                document.getElementById('balanceAmount').textContent = `₹${currentRecord.balance}`;
+                document.getElementById('feeStatus').textContent = currentRecord.status;
+                document.getElementById('feeStatus').className = `status-${currentRecord.status.toLowerCase()}`;
+                
+                // Load fee breakdown
+                const breakdownContainer = document.getElementById('feeBreakdown');
+                breakdownContainer.innerHTML = currentRecord.components.map(comp => `
+                    <div class="fee-component-item">
+                        <span>${comp.name}</span>
+                        <span>₹${comp.amount}</span>
+                    </div>
+                `).join('');
+                
+                // Load payment history
+                const paymentContainer = document.getElementById('paymentHistory');
+                if (currentRecord.payments.length === 0) {
+                    paymentContainer.innerHTML = '<p class="empty-state">No payment history available.</p>';
+                } else {
+                    paymentContainer.innerHTML = currentRecord.payments.map(payment => `
+                        <div class="payment-item">
+                            <div class="payment-info">
+                                <strong>₹${payment.amount}</strong>
+                                <span>${payment.method}</span>
+                                <span>${new Date(payment.date).toLocaleDateString()}</span>
+                            </div>
+                            <div class="payment-details">
+                                <small>Transaction: ${payment.transactionId || 'N/A'}</small>
+                                <small>${payment.remarks || ''}</small>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } else {
+                document.getElementById('feeBreakdown').innerHTML = '<p class="empty-state">No fee structure assigned yet.</p>';
+                document.getElementById('paymentHistory').innerHTML = '<p class="empty-state">No payment history available.</p>';
+            }
+        }
+
+        function loadAdminView() {
+            const classes = DataHandler.getClasses();
+            const classSelect = document.getElementById('feeClass');
+            const feeClassSelect = document.getElementById('feeClassSelect');
+            
+            classes.forEach(cls => {
+                classSelect.innerHTML += `<option value="${cls.id}">${cls.name}</option>`;
+                feeClassSelect.innerHTML += `<option value="${cls.id}">${cls.name}</option>`;
+            });
+            
+            loadFeeRecords();
+        }
+
+        function loadFeeRecords() {
+            const classId = document.getElementById('feeClass').value;
+            const statusFilter = document.getElementById('feeStatusFilter').value;
+            const feeRecords = DataHandler.getFeeRecords();
+            const users = DataHandler.getUsers();
+            const classes = DataHandler.getClasses();
+            
+            let filteredRecords = feeRecords;
+            
+            if (classId !== 'all') {
+                const classStudents = users.filter(u => u.type === 'student' && 
+                    u.semester === classes.find(c => c.id === classId)?.semester);
+                filteredRecords = filteredRecords.filter(f => 
+                    classStudents.some(s => s.id === f.studentId)
+                );
+            }
+            
+            if (statusFilter !== 'all') {
+                filteredRecords = filteredRecords.filter(f => f.status === statusFilter);
+            }
+            
+            displayFeeRecords(filteredRecords);
+        }
+
+        function displayFeeRecords(records) {
+            const container = document.getElementById('feeRecords');
+            const users = DataHandler.getUsers();
+            
+            if (records.length === 0) {
+                container.innerHTML = '<p class="empty-state">No fee records found.</p>';
+                return;
+            }
+
+            container.innerHTML = records.map(record => {
+                const student = users.find(u => u.id === record.studentId);
+                const paidPercentage = (record.paidAmount / record.totalAmount * 100).toFixed(1);
+                
+                return `
+                    <div class="fee-record-card">
+                        <div class="fee-record-header">
+                            <div class="student-info">
+                                <h4>${student ? student.name : 'Unknown'}</h4>
+                                <p>${student ? student.rollNumber : 'N/A'} • ${record.academicYear}</p>
+                            </div>
+                            <div class="fee-status ${record.status.toLowerCase()}">
+                                ${record.status}
+                            </div>
+                        </div>
+                        
+                        <div class="fee-amounts">
+                            <div class="amount-item">
+                                <span>Total Fee:</span>
+                                <strong>₹${record.totalAmount}</strong>
+                            </div>
+                            <div class="amount-item">
+                                <span>Paid:</span>
+                                <strong>₹${record.paidAmount}</strong>
+                            </div>
+                            <div class="amount-item">
+                                <span>Balance:</span>
+                                <strong>₹${record.balance}</strong>
+                            </div>
+                        </div>
+                        
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${paidPercentage}%"></div>
+                        </div>
+                        <small>${paidPercentage}% Paid</small>
+                        
+                        <div class="fee-actions">
+                            <button class="btn btn-small btn-primary" onclick="recordPayment('${record.id}')">
+                                💳 Record Payment
+                            </button>
+                            <button class="btn btn-small btn-secondary" onclick="viewFeeDetails('${record.id}')">
+                                👁️ View Details
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function showAddFeeModal() {
+            document.getElementById('addFeeModal').style.display = 'flex';
+            document.getElementById('dueDate').value = new Date().toISOString().split('T')[0];
+            calculateTotalFee();
+        }
+
+        function closeAddFeeModal() {
+            document.getElementById('addFeeModal').style.display = 'none';
+        }
+
+        function addFeeComponent() {
+            const container = document.getElementById('feeComponents');
+            const componentDiv = document.createElement('div');
+            componentDiv.className = 'fee-component';
+            componentDiv.innerHTML = `
+                <div class="form-row">
+                    <div class="form-group">
+                        <input type="text" class="component-name" placeholder="Component Name" required oninput="calculateTotalFee()">
+                    </div>
+                    <div class="form-group">
+                        <input type="number" class="component-amount" placeholder="Amount" required oninput="calculateTotalFee()">
+                    </div>
+                    <div class="form-group">
+                        <button type="button" class="btn btn-small btn-danger" onclick="removeComponent(this)">🗑️</button>
+                    </div>
+                </div>
+            `;
+            container.appendChild(componentDiv);
+        }
+
+        function removeComponent(button) {
+            if (document.querySelectorAll('.fee-component').length > 1) {
+                button.closest('.fee-component').remove();
+                calculateTotalFee();
+            }
+        }
+
+        function calculateTotalFee() {
+            const components = document.querySelectorAll('.fee-component');
+            let total = 0;
+            
+            components.forEach(comp => {
+                const amount = parseFloat(comp.querySelector('.component-amount').value) || 0;
+                total += amount;
+            });
+            
+            document.getElementById('totalFeeAmount').value = total;
+        }
+
+        function loadStudentsForFee() {
+            // This would load students for the selected class
+            // Implementation similar to previous functions
+        }
+
+        document.getElementById('addFeeForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const classId = document.getElementById('feeClassSelect').value;
+            const academicYear = document.getElementById('academicYear').value;
+            const feeType = document.getElementById('feeType').value;
+            const dueDate = document.getElementById('dueDate').value;
+            const totalAmount = parseFloat(document.getElementById('totalFeeAmount').value);
+            
+            const classes = DataHandler.getClasses();
+            const selectedClass = classes.find(c => c.id === classId);
+            const students = DataHandler.getUsers().filter(u => 
+                u.type === 'student' && 
+                u.semester === selectedClass.semester && 
+                u.course === selectedClass.course
+            );
+            
+            const components = Array.from(document.querySelectorAll('.fee-component')).map(comp => ({
+                name: comp.querySelector('.component-name').value,
+                amount: parseFloat(comp.querySelector('.component-amount').value)
+            }));
+            
+            students.forEach(student => {
+                const feeRecord = {
+                    id: Date.now().toString() + Math.random(),
+                    studentId: student.id,
+                    studentName: student.name,
+                    rollNumber: student.rollNumber,
+                    classId: classId,
+                    className: selectedClass.name,
+                    academicYear: academicYear,
+                    feeType: feeType,
+                    components: components,
+                    totalAmount: totalAmount,
+                    paidAmount: 0,
+                    balance: totalAmount,
+                    status: 'Pending',
+                    dueDate: dueDate,
+                    payments: [],
+                    createdBy: user.id,
+                    createdAt: new Date().toISOString()
+                };
+                
+                DataHandler.addFeeRecord(feeRecord);
+            });
+            
+            alert('✅ Fee structure created successfully!');
+            closeAddFeeModal();
+            loadFeeRecords();
+        });
+
+        function recordPayment(feeRecordId) {
+            const feeRecord = DataHandler.getFeeRecords().find(f => f.id === feeRecordId);
+            const student = DataHandler.getUsers().find(u => u.id === feeRecord.studentId);
+            
+            currentFeeRecord = feeRecord;
+            
+            document.getElementById('paymentStudentInfo').textContent = 
+                `${student.name} (${student.rollNumber})`;
+            document.getElementById('paymentTotalFee').textContent = `₹${feeRecord.totalAmount}`;
+            document.getElementById('paymentPaidAmount').textContent = `₹${feeRecord.paidAmount}`;
+            document.getElementById('paymentBalance').textContent = `₹${feeRecord.balance}`;
+            document.getElementById('paymentDate').value = new Date().toISOString().split('T')[0];
+            
+            document.getElementById('recordPaymentModal').style.display = 'flex';
+        }
+
+        function closeRecordPaymentModal() {
+            document.getElementById('recordPaymentModal').style.display = 'none';
+            currentFeeRecord = null;
+        }
+
+        document.getElementById('recordPaymentForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const amount = parseFloat(document.getElementById('paymentAmount').value);
+            const paymentDate = document.getElementById('paymentDate').value;
+            const method = document.getElementById('paymentMethod').value;
+            const transactionId = document.getElementById('transactionId').value;
+            const remarks = document.getElementById('paymentRemarks').value;
+            
+            if (amount > currentFeeRecord.balance) {
+                alert('Payment amount cannot exceed the balance amount.');
+                return;
+            }
+            
+            const paymentData = {
+                id: Date.now().toString() + Math.random(),
+                amount: amount,
+                date: paymentDate,
+                method: method,
+                transactionId: transactionId,
+                remarks: remarks,
+                recordedBy: user.id,
+                recordedAt: new Date().toISOString()
+            };
+            
+            DataHandler.updateFeePayment(currentFeeRecord.id, paymentData);
+            alert('✅ Payment recorded successfully!');
+            closeRecordPaymentModal();
+            loadFeeRecords();
+        });
+
+        function viewFeeDetails(feeRecordId) {
+            const feeRecord = DataHandler.getFeeRecords().find(f => f.id === feeRecordId);
+            const student = DataHandler.getUsers().find(u => u.id === feeRecord.studentId);
+            
+            const detailsHTML = `
+                <h3>Fee Details - ${student.name}</h3>
+                <div class="fee-details">
+                    <p><strong>Roll No:</strong> ${student.rollNumber}</p>
+                    <p><strong>Academic Year:</strong> ${feeRecord.academicYear}</p>
+                    <p><strong>Fee Type:</strong> ${feeRecord.feeType}</p>
+                    <p><strong>Due Date:</strong> ${new Date(feeRecord.dueDate).toLocaleDateString()}</p>
+                    
+                    <h4>Fee Components:</h4>
+                    ${feeRecord.components.map(comp => `
+                        <p>• ${comp.name}: ₹${comp.amount}</p>
+                    `).join('')}
+                    
+                    <h4>Payment History:</h4>
+                    ${feeRecord.payments.length === 0 ? 
+                        '<p>No payments recorded.</p>' :
+                        feeRecord.payments.map(payment => `
+                            <p>• ₹${payment.amount} via ${payment.method} on ${new Date(payment.date).toLocaleDateString()}</p>
+                        `).join('')
+                    }
+                </div>
+            `;
+            
+            alert(detailsHTML);
+        }
+
+        function exportFeeReceipt() {
+            const feeRecords = DataHandler.getFeeRecords().filter(f => f.studentId === user.id);
+            if (feeRecords.length === 0) {
+                alert('No fee records found.');
+                return;
+            }
+            
+            const receipt = {
+                student: user,
+                feeRecord: feeRecords[0],
+                exportedAt: new Date().toISOString()
+            };
+            
+            DataHandler.exportData(receipt, `fee_receipt_${user.rollNumber}.json`);
+        }
+
+        function exportFeeReports() {
+            const feeRecords = DataHandler.getFeeRecords();
+            DataHandler.exportData(feeRecords, 'fee_reports_export.json');
+        }
+
+        // Event Listeners
+        document.getElementById('menuBtn').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.add('active');
+        });
+
+        document.getElementById('closeSidebar').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.remove('active');
+        });
+
+        // Initialize total fee calculation
+        calculateTotalFee();
+    </script>
+
+    <style>
+        .fee-breakdown {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .fee-component-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .payment-history {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .payment-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .payment-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .payment-info strong {
+            color: #27ae60;
+            font-size: 16px;
+        }
+        .payment-details {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+        .status-paid { color: #27ae60; font-weight: bold; }
+        .status-pending { color: #e67e22; font-weight: bold; }
+        .status-partial { color: #f39c12; font-weight: bold; }
+        .fee-records-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        .fee-record-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .fee-record-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+        .student-info h4 {
+            margin: 0;
+            color: #2c3e50;
+        }
+        .student-info p {
+            margin: 5px 0;
+            color: #666;
+        }
+        .fee-status {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .fee-status.paid { background: #d4edda; color: #155724; }
+        .fee-status.pending { background: #f8d7da; color: #721c24; }
+        .fee-status.partial { background: #fff3cd; color: #856404; }
+        .fee-amounts {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        .amount-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .amount-item span {
+            font-size: 12px;
+            color: #666;
+        }
+        .amount-item strong {
+            color: #2c3e50;
+            font-size: 16px;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #ecf0f1;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 5px;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            transition: width 0.3s ease;
+        }
+        .fee-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .student-info-display, .fee-amount-display {
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            margin: 0;
+        }
+        .fee-component {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+    </style>
+</body>
+</html>

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard - Maharaja College</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="dashboard">
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>🎓 Student Portal</h2>
+                <button class="close-btn" id="closeSidebar">×</button>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="studentDashboard.html" class="active">📊 Dashboard</a></li>
+                <li><a href="materials.html">📚 Study Materials</a></li>
+                <li><a href="tests.html">📝 Tests</a></li>
+                <li><a href="performance.html">📈 Performance</a></li>
+                <li><a href="notices.html">📢 Notices</a></li>
+                <li><a href="chat.html">💬 Group Chat</a></li>
+                <li><a href="#" id="logoutBtn">🚪 Logout</a></li>
+            </ul>
+        </nav>
+        <main class="main-content">
+            <header class="top-bar">
+                <button class="menu-btn" id="menuBtn">☰</button>
+                <h1>Student Dashboard</h1>
+                <div class="user-info">
+                    <span id="userName">Student</span>
+                </div>
+            </header>
+            <div class="content">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Study Materials</h3>
+                        <p class="stat-number" id="materialsCount">0</p>
+                        <small>Available Files</small>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Available Tests</h3>
+                        <p class="stat-number" id="testsCount">0</p>
+                        <small>Active Tests</small>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Notices</h3>
+                        <p class="stat-number" id="noticesCount">0</p>
+                        <small>Recent Updates</small>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Avg Score</h3>
+                        <p class="stat-number" id="avgScore">0%</p>
+                        <small>Overall Performance</small>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2>📚 Recent Materials</h2>
+                    <div id="recentMaterials" class="materials-grid"></div>
+                </div>
+
+                <div class="section">
+                    <h2>📝 Upcoming Tests</h2>
+                    <div id="upcomingTests" class="tests-grid"></div>
+                </div>
+
+                <div class="section">
+                    <h2>📢 Latest Notices</h2>
+                    <div id="recentNotices" class="notices-grid"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/dataHandler.js"></script>
+    <script>
+        const user = DataHandler.getCurrentUser();
+        if (!user || user.type !== 'student') {
+            window.location.href = 'index.html';
+        }
+
+        document.getElementById('userName').textContent = user.name;
+
+        function loadDashboard() {
+            const materials = DataHandler.getMaterials();
+            const tests = DataHandler.getTests();
+            const notices = DataHandler.getNotices();
+            const submissions = DataHandler.getSubmissions().filter(s => s.studentId === user.id);
+
+            // Update stats
+            document.getElementById('materialsCount').textContent = materials.length;
+            document.getElementById('testsCount').textContent = tests.length;
+            document.getElementById('noticesCount').textContent = notices.length;
+
+            // Calculate average score
+            const avgScore = submissions.length > 0 
+                ? (submissions.reduce((acc, s) => acc + parseFloat(s.percentage), 0) / submissions.length).toFixed(2)
+                : 0;
+            document.getElementById('avgScore').textContent = avgScore + '%';
+
+            // Load recent materials
+            loadRecentMaterials(materials.slice(-4).reverse());
+            
+            // Load upcoming tests
+            loadUpcomingTests(tests, submissions);
+            
+            // Load recent notices
+            loadRecentNotices(notices.slice(-3).reverse());
+        }
+
+        function loadRecentMaterials(materials) {
+            const container = document.getElementById('recentMaterials');
+            if (materials.length === 0) {
+                container.innerHTML = '<p class="empty-state">No materials available yet.</p>';
+                return;
+            }
+
+            container.innerHTML = materials.map(material => `
+                <div class="material-card">
+                    <div class="file-type-icon ${material.fileType}">📄</div>
+                    <h3>${material.title}</h3>
+                    <p>${material.description}</p>
+                    <div class="file-info">
+                        <small>📁 ${material.fileType.toUpperCase()}</small>
+                        <small>📦 ${material.fileSize}</small>
+                    </div>
+                    <small>📅 ${new Date(material.uploadDate).toLocaleDateString()}</small>
+                    <div class="material-actions">
+                        <button class="btn btn-small btn-primary" onclick="downloadMaterial('${material.id}')">📥 Download</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function loadUpcomingTests(tests, submissions) {
+            const container = document.getElementById('upcomingTests');
+            const unattemptedTests = tests.filter(test => 
+                !submissions.some(submission => submission.testId === test.id)
+            );
+
+            if (unattemptedTests.length === 0) {
+                container.innerHTML = '<p class="empty-state">No upcoming tests.</p>';
+                return;
+            }
+
+            container.innerHTML = unattemptedTests.slice(0, 3).map(test => `
+                <div class="test-card">
+                    <h3>${test.title}</h3>
+                    <p>📝 ${test.questions.length} Questions</p>
+                    <p>⏱️ ${test.duration} minutes</p>
+                    <p>📚 ${test.subject}</p>
+                    <small>📅 Created: ${new Date(test.createdDate).toLocaleDateString()}</small>
+                    <a href="attemptTest.html?id=${test.id}" class="btn btn-small btn-primary">🚀 Start Test</a>
+                </div>
+            `).join('');
+        }
+
+        function loadRecentNotices(notices) {
+            const container = document.getElementById('recentNotices');
+            if (notices.length === 0) {
+                container.innerHTML = '<p class="empty-state">No notices available.</p>';
+                return;
+            }
+
+            container.innerHTML = notices.map(notice => `
+                <div class="notice-card">
+                    <h3>${notice.title}</h3>
+                    <p>${notice.description}</p>
+                    <div class="notice-meta">
+                        <small>📅 ${new Date(notice.publishDate).toLocaleDateString()}</small>
+                        <small>🎯 ${notice.priority}</small>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function downloadMaterial(materialId) {
+            const material = DataHandler.getMaterials().find(m => m.id === materialId);
+            if (material) {
+                // Simulate download
+                material.downloads++;
+                DataHandler.saveToStorage('school_materials', DataHandler.getMaterials());
+                alert(`Downloading: ${material.title}`);
+            }
+        }
+
+        // Event Listeners
+        document.getElementById('menuBtn').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.add('active');
+        });
+
+        document.getElementById('closeSidebar').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.remove('active');
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            DataHandler.logout();
+            window.location.href = 'index.html';
+        });
+
+        loadDashboard();
+    </script>
+</body>
+</html>

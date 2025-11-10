@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notices - Maharaja College</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="dashboard">
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2 id="portalTitle">📚 Portal</h2>
+                <button class="close-btn" id="closeSidebar">×</button>
+            </div>
+            <ul class="nav-menu" id="navMenu"></ul>
+        </nav>
+        <main class="main-content">
+            <header class="top-bar">
+                <button class="menu-btn" id="menuBtn">☰</button>
+                <h1>📢 Notices</h1>
+                <div class="user-info">
+                    <span id="userName">User</span>
+                </div>
+            </header>
+            <div class="content">
+                <!-- Teacher Actions -->
+                <div id="teacherActions" style="display:none;" class="section">
+                    <div class="section-header">
+                        <h2>👨‍🏫 Teacher Actions</h2>
+                        <a href="notice-upload.html" class="btn btn-primary">📢 Publish New Notice</a>
+                    </div>
+                </div>
+
+                <!-- Notices List -->
+                <div class="section">
+                    <div class="section-header">
+                        <h2>📋 All Notices</h2>
+                        <div class="search-bar">
+                            <input type="text" id="searchNotices" placeholder="🔍 Search notices..." onkeyup="searchNotices()">
+                        </div>
+                    </div>
+
+                    <div class="file-categories">
+                        <button class="category-btn active" onclick="filterNotices('all')">📋 All</button>
+                        <button class="category-btn" onclick="filterNotices('urgent')">🚨 Urgent</button>
+                        <button class="category-btn" onclick="filterNotices('exam')">📝 Exam</button>
+                        <button class="category-btn" onclick="filterNotices('holiday')">🎉 Holiday</button>
+                        <button class="category-btn" onclick="filterNotices('academic')">🎓 Academic</button>
+                    </div>
+
+                    <div id="noticesList"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/dataHandler.js"></script>
+    <script>
+        const user = DataHandler.getCurrentUser();
+        if (!user) window.location.href = 'index.html';
+        
+        const isTeacher = user.type === 'teacher' || user.type === 'admin';
+        document.getElementById('portalTitle').textContent = isTeacher ? '👨‍🏫 Teacher Portal' : '📚 Student Portal';
+        document.getElementById('userName').textContent = user.name;
+        
+        const navMenu = document.getElementById('navMenu');
+        const dashboardLink = isTeacher ? 'teacherDashboard.html' : 'studentDashboard.html';
+        navMenu.innerHTML = `
+            <li><a href="${dashboardLink}">📊 Dashboard</a></li>
+            <li><a href="materials.html">📚 Materials</a></li>
+            <li><a href="tests.html">📝 Tests</a></li>
+            <li><a href="performance.html">📈 Performance</a></li>
+            <li><a href="notices.html" class="active">📢 Notices</a></li>
+            <li><a href="chat.html">💬 Group Chat</a></li>
+            <li><a href="#" id="logoutBtn">🚪 Logout</a></li>
+        `;
+        
+        document.getElementById('logoutBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            DataHandler.logout();
+            window.location.href = 'index.html';
+        });
+
+        let currentFilter = 'all';
+
+        function filterNotices(category) {
+            // Update active button
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            currentFilter = category;
+            searchNotices();
+        }
+        
+        function searchNotices() {
+            const searchTerm = document.getElementById('searchNotices').value.toLowerCase();
+            const notices = DataHandler.getNotices();
+            const container = document.getElementById('noticesList');
+            
+            let filteredNotices = notices;
+            
+            // Apply category filter
+            if (currentFilter !== 'all') {
+                filteredNotices = filteredNotices.filter(notice => notice.category === currentFilter);
+            }
+            
+            // Apply search filter
+            if (searchTerm) {
+                filteredNotices = filteredNotices.filter(notice => 
+                    notice.title.toLowerCase().includes(searchTerm) ||
+                    notice.description.toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            // Show only published notices to students
+            if (!isTeacher) {
+                filteredNotices = filteredNotices.filter(notice => notice.status === 'published');
+            }
+            
+            if (filteredNotices.length === 0) {
+                container.innerHTML = '<p class="empty-state">No notices found matching your search.</p>';
+                return;
+            }
+            
+            container.innerHTML = filteredNotices.map(n => {
+                const publisher = DataHandler.getUsers().find(u => u.id === n.publishedBy);
+                const priorityIcon = getPriorityIcon(n.priority);
+                const categoryIcon = getCategoryIcon(n.category);
+                const statusBadge = n.status === 'published' ? 
+                    '<span class="status-badge published">📢 Published</span>' : 
+                    '<span class="status-badge draft">💾 Draft</span>';
+                
+                return `
+                    <div class="notice-card">
+                        <div class="notice-header">
+                            <div>
+                                <h3>${n.title}</h3>
+                                <div class="notice-meta">
+                                    <span class="priority ${n.priority}">${priorityIcon} ${n.priority.toUpperCase()}</span>
+                                    <span class="category">${categoryIcon} ${n.category.charAt(0).toUpperCase() + n.category.slice(1)}</span>
+                                    ${isTeacher ? statusBadge : ''}
+                                </div>
+                            </div>
+                            ${isTeacher && n.publishedBy === user.id ? 
+                                `<button class="btn-delete" onclick="deleteNotice('${n.id}')">🗑️</button>` : ''
+                            }
+                        </div>
+                        <p>${n.description}</p>
+                        <div class="notice-footer">
+                            <small>📅 Published: ${new Date(n.publishDate).toLocaleString()}</small>
+                            <small>👤 By: ${publisher ? publisher.name : 'Unknown'}</small>
+                            ${n.expiryDate ? `<small>⏰ Valid until: ${new Date(n.expiryDate).toLocaleDateString()}</small>` : ''}
+                        </div>
+                        ${isTeacher && n.publishedBy === user.id && n.status === 'draft' ? 
+                            `<div class="notice-actions">
+                                <button class="btn btn-small btn-success" onclick="publishNotice('${n.id}')">📢 Publish</button>
+                            </div>` : ''
+                        }
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function getPriorityIcon(priority) {
+            const icons = {
+                'low': '🟢',
+                'medium': '🟡', 
+                'high': '🔴'
+            };
+            return icons[priority] || '⚪';
+        }
+        
+        function getCategoryIcon(category) {
+            const icons = {
+                'general': '📢',
+                'academic': '🎓',
+                'exam': '📝',
+                'holiday': '🎉',
+                'urgent': '🚨',
+                'event': '📅'
+            };
+            return icons[category] || '📄';
+        }
+        
+        function deleteNotice(noticeId) {
+            if (confirm('Are you sure you want to delete this notice?')) {
+                const notices = DataHandler.getNotices().filter(n => n.id !== noticeId);
+                DataHandler.saveToStorage('school_notices', notices);
+                searchNotices();
+            }
+        }
+        
+        function publishNotice(noticeId) {
+            const notices = DataHandler.getNotices();
+            const noticeIndex = notices.findIndex(n => n.id === noticeId);
+            if (noticeIndex !== -1) {
+                notices[noticeIndex].status = 'published';
+                DataHandler.saveToStorage('school_notices', notices);
+                alert('✅ Notice published successfully!');
+                searchNotices();
+            }
+        }
+        
+        // Show teacher actions if user is teacher
+        if (isTeacher) {
+            document.getElementById('teacherActions').style.display = 'block';
+        }
+        
+        document.getElementById('menuBtn').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.add('active');
+        });
+        
+        document.getElementById('closeSidebar').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.remove('active');
+        });
+        
+        // Add CSS for notice styles
+        const style = document.createElement('style');
+        style.textContent = `
+            .notice-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                margin-bottom: 15px;
+            }
+            .notice-meta {
+                display: flex;
+                gap: 10px;
+                margin-top: 5px;
+                flex-wrap: wrap;
+            }
+            .priority, .category {
+                padding: 4px 8px;
+                border-radius: 12px;
+                font-size: 12px;
+                font-weight: bold;
+            }
+            .priority.high {
+                background: #f8d7da;
+                color: #721c24;
+            }
+            .priority.medium {
+                background: #fff3cd;
+                color: #856404;
+            }
+            .priority.low {
+                background: #d1ecf1;
+                color: #0c5460;
+            }
+            .category {
+                background: #e2e3e5;
+                color: #383d41;
+            }
+            .notice-footer {
+                display: flex;
+                justify-content: space-between;
+                margin-top: 15px;
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+            .notice-actions {
+                margin-top: 15px;
+                text-align: right;
+            }
+        `;
+        document.head.appendChild(style);
+        
+        searchNotices();
+    </script>
+</body>
+</html>

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Publish Notice - Maharaja College</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="dashboard">
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>👨‍🏫 Teacher Portal</h2>
+                <button class="close-btn" id="closeSidebar">×</button>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="teacherDashboard.html">📊 Dashboard</a></li>
+                <li><a href="materials.html">📚 Materials</a></li>
+                <li><a href="tests.html">📝 Tests</a></li>
+                <li><a href="performance.html">📈 Performance</a></li>
+                <li><a href="notice-upload.html" class="active">📢 Publish Notice</a></li>
+                <li><a href="notices.html">📋 Notices</a></li>
+                <li><a href="chat.html">💬 Group Chat</a></li>
+                <li><a href="#" id="logoutBtn">🚪 Logout</a></li>
+            </ul>
+        </nav>
+        <main class="main-content">
+            <header class="top-bar">
+                <button class="menu-btn" id="menuBtn">☰</button>
+                <h1>📢 Publish New Notice</h1>
+                <div class="user-info">
+                    <span id="userName">Teacher</span>
+                </div>
+            </header>
+            <div class="content">
+                <div class="section">
+                    <form id="publishForm" class="form">
+                        <div class="form-group">
+                            <label>📌 Title</label>
+                            <input type="text" id="noticeTitle" required placeholder="Enter notice title">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>📄 Description</label>
+                            <textarea id="noticeDesc" required placeholder="Enter notice details..." rows="6"></textarea>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>🏷️ Category</label>
+                                <select id="noticeCategory" required>
+                                    <option value="general">📢 General</option>
+                                    <option value="academic">🎓 Academic</option>
+                                    <option value="exam">📝 Exam</option>
+                                    <option value="holiday">🎉 Holiday</option>
+                                    <option value="urgent">🚨 Urgent</option>
+                                    <option value="event">📅 Event</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>🎯 Priority</label>
+                                <select id="noticePriority" required>
+                                    <option value="low">🟢 Low</option>
+                                    <option value="medium">🟡 Medium</option>
+                                    <option value="high">🔴 High</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>📅 Valid Until (Optional)</label>
+                            <input type="date" id="noticeExpiry">
+                        </div>
+
+                        <div class="quick-notice-templates">
+                            <h4>🚀 Quick Notice Templates:</h4>
+                            <div class="template-buttons">
+                                <button type="button" class="btn btn-small btn-secondary" onclick="fillNoticeTemplate('holiday')">🎉 Holiday</button>
+                                <button type="button" class="btn btn-small btn-secondary" onclick="fillNoticeTemplate('exam')">📝 Exam</button>
+                                <button type="button" class="btn btn-small btn-secondary" onclick="fillNoticeTemplate('meeting')">👥 Meeting</button>
+                                <button type="button" class="btn btn-small btn-secondary" onclick="fillNoticeTemplate('urgent')">🚨 Urgent</button>
+                                <button type="button" class="btn btn-small btn-secondary" onclick="fillNoticeTemplate('general')">📢 General</button>
+                            </div>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">✅ Publish Notice</button>
+                            <button type="button" class="btn btn-secondary" onclick="clearNoticeForm()">🔄 Clear Form</button>
+                            <button type="button" class="btn btn-outline" onclick="saveAsDraft()">💾 Save as Draft</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/dataHandler.js"></script>
+    <script>
+        const user = DataHandler.getCurrentUser();
+        if (!user || (user.type !== 'teacher' && user.type !== 'admin')) {
+            window.location.href = 'index.html';
+        }
+
+        document.getElementById('userName').textContent = user.name;
+
+        // Quick notice templates
+        function fillNoticeTemplate(type) {
+            const templates = {
+                'holiday': {
+                    title: 'Holiday Announcement - ',
+                    desc: 'School will remain closed on [date] due to [reason]. All classes will resume normally on [date]. Please plan accordingly.',
+                    category: 'holiday',
+                    priority: 'medium'
+                },
+                'exam': {
+                    title: 'Exam Schedule - ',
+                    desc: 'Important: The [exam name] will be conducted on [date]. Please bring your admit card and necessary stationery. Hall tickets available at [location].',
+                    category: 'exam',
+                    priority: 'high'
+                },
+                'meeting': {
+                    title: 'Parent-Teacher Meeting - ',
+                    desc: 'We cordially invite you for the parent-teacher meeting on [date] at [time] in [location]. Please make it convenient to attend.',
+                    category: 'event',
+                    priority: 'medium'
+                },
+                'urgent': {
+                    title: 'URGENT: ',
+                    desc: 'ATTENTION: [Important information]. This requires immediate action. Please comply by [deadline].',
+                    category: 'urgent',
+                    priority: 'high'
+                },
+                'general': {
+                    title: 'General Notice - ',
+                    desc: 'This is to inform all students that [information]. Please take note and follow the guidelines provided.',
+                    category: 'general',
+                    priority: 'low'
+                }
+            };
+            
+            const template = templates[type];
+            document.getElementById('noticeTitle').value = template.title;
+            document.getElementById('noticeDesc').value = template.desc;
+            document.getElementById('noticeCategory').value = template.category;
+            document.getElementById('noticePriority').value = template.priority;
+            document.getElementById('noticeTitle').focus();
+        }
+        
+        function clearNoticeForm() {
+            document.getElementById('publishForm').reset();
+        }
+
+        function saveAsDraft() {
+            const notice = {
+                id: Date.now().toString(),
+                title: document.getElementById('noticeTitle').value,
+                description: document.getElementById('noticeDesc').value,
+                category: document.getElementById('noticeCategory').value,
+                priority: document.getElementById('noticePriority').value,
+                expiryDate: document.getElementById('noticeExpiry').value,
+                publishedBy: user.id,
+                publishDate: new Date().toISOString(),
+                semester: '3',
+                course: 'BCA',
+                status: 'draft'
+            };
+            
+            DataHandler.addNotice(notice);
+            alert('✅ Notice saved as draft!');
+        }
+        
+        document.getElementById('publishForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const notice = {
+                id: Date.now().toString(),
+                title: document.getElementById('noticeTitle').value,
+                description: document.getElementById('noticeDesc').value,
+                category: document.getElementById('noticeCategory').value,
+                priority: document.getElementById('noticePriority').value,
+                expiryDate: document.getElementById('noticeExpiry').value,
+                publishedBy: user.id,
+                publishDate: new Date().toISOString(),
+                semester: '3',
+                course: 'BCA',
+                status: 'published'
+            };
+            
+            DataHandler.addNotice(notice);
+            alert('✅ Notice published successfully!');
+            window.location.href = 'notices.html';
+        });
+
+        // Event Listeners
+        document.getElementById('menuBtn').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.add('active');
+        });
+
+        document.getElementById('closeSidebar').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.remove('active');
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            DataHandler.logout();
+            window.location.href = 'index.html';
+        });
+    </script>
+</body>
+</html>

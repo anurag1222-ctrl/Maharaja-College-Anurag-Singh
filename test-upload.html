@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Test - Maharaja College</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="dashboard">
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>👨‍🏫 Teacher Portal</h2>
+                <button class="close-btn" id="closeSidebar">×</button>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="teacherDashboard.html">📊 Dashboard</a></li>
+                <li><a href="materials.html">📚 Materials</a></li>
+                <li><a href="test-upload.html" class="active">📝 Create Test</a></li>
+                <li><a href="tests.html">🧪 Manage Tests</a></li>
+                <li><a href="performance.html">📈 Performance</a></li>
+                <li><a href="notices.html">📢 Notices</a></li>
+                <li><a href="chat.html">💬 Group Chat</a></li>
+                <li><a href="#" id="logoutBtn">🚪 Logout</a></li>
+            </ul>
+        </nav>
+        <main class="main-content">
+            <header class="top-bar">
+                <button class="menu-btn" id="menuBtn">☰</button>
+                <h1>📝 Create New Test</h1>
+                <div class="user-info">
+                    <span id="userName">Teacher</span>
+                </div>
+            </header>
+            <div class="content">
+                <div class="section">
+                    <form id="createTestForm" class="form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>📌 Test Title</label>
+                                <input type="text" id="testTitle" required placeholder="Enter test title">
+                            </div>
+                            <div class="form-group">
+                                <label>⏱️ Duration (minutes)</label>
+                                <input type="number" id="testDuration" required min="5" value="30">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>📚 Subject</label>
+                                <select id="testSubject" required>
+                                    <option value="Java Programming">Java Programming</option>
+                                    <option value="DBMS">Database Management Systems</option>
+                                    <option value="Data Structures">Data Structures</option>
+                                    <option value="Operating Systems">Operating Systems</option>
+                                    <option value="Computer Networks">Computer Networks</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>📊 Test Type</label>
+                                <select id="testType" required>
+                                    <option value="quiz">🎯 Quick Quiz</option>
+                                    <option value="unit-test">📝 Unit Test</option>
+                                    <option value="midterm">📊 Midterm</option>
+                                    <option value="final">🏆 Final Exam</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>📄 Instructions (Optional)</label>
+                            <textarea id="testInstructions" placeholder="Enter test instructions for students..." rows="3"></textarea>
+                        </div>
+                        
+                        <div class="quick-test-templates">
+                            <h4>🚀 Quick Test Templates:</h4>
+                            <div class="template-buttons">
+                                <button type="button" class="btn btn-small btn-secondary" onclick="fillTestTemplate('quiz')">🎯 Quick Quiz</button>
+                                <button type="button" class="btn btn-small btn-secondary" onclick="fillTestTemplate('midterm')">📊 Midterm</button>
+                                <button type="button" class="btn btn-small btn-secondary" onclick="fillTestTemplate('final')">🏆 Final Exam</button>
+                                <button type="button" class="btn btn-small btn-secondary" onclick="fillTestTemplate('practice')">💪 Practice Test</button>
+                            </div>
+                        </div>
+                        
+                        <div id="questionsContainer">
+                            <h3>❓ Questions</h3>
+                            <div class="question-item">
+                                <div class="question-header">
+                                    <h4>Question 1</h4>
+                                    <button type="button" class="btn btn-small btn-danger" onclick="removeQuestion(this)">🗑️ Remove</button>
+                                </div>
+                                <div class="form-group">
+                                    <label>Question Text</label>
+                                    <input type="text" class="question-text" required placeholder="Enter your question">
+                                </div>
+                                <div class="options-group">
+                                    <div class="option-item">
+                                        <label>A)</label>
+                                        <input type="text" class="option" placeholder="Option A" required>
+                                    </div>
+                                    <div class="option-item">
+                                        <label>B)</label>
+                                        <input type="text" class="option" placeholder="Option B" required>
+                                    </div>
+                                    <div class="option-item">
+                                        <label>C)</label>
+                                        <input type="text" class="option" placeholder="Option C" required>
+                                    </div>
+                                    <div class="option-item">
+                                        <label>D)</label>
+                                        <input type="text" class="option" placeholder="Option D" required>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>✅ Correct Answer</label>
+                                    <select class="correct-answer" required>
+                                        <option value="0">Option A</option>
+                                        <option value="1">Option B</option>
+                                        <option value="2">Option C</option>
+                                        <option value="3">Option D</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>💡 Explanation (Optional)</label>
+                                    <textarea class="question-explanation" placeholder="Explain why this is the correct answer..." rows="2"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" id="addQuestionBtn">➕ Add Question</button>
+                            <button type="button" class="btn btn-secondary" onclick="addSampleQuestion()">📚 Add Sample Question</button>
+                            <button type="submit" class="btn btn-primary">✅ Create Test</button>
+                            <button type="button" class="btn btn-outline" onclick="saveAsDraft()">💾 Save as Draft</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/dataHandler.js"></script>
+    <script>
+        const user = DataHandler.getCurrentUser();
+        if (!user || (user.type !== 'teacher' && user.type !== 'admin')) {
+            window.location.href = 'index.html';
+        }
+
+        document.getElementById('userName').textContent = user.name;
+
+        let questionCount = 1;
+        const sampleQuestions = [
+            {
+                question: "What is the default value of boolean in Java?",
+                options: ["true", "false", "0", "null"],
+                correctAnswer: 1,
+                explanation: "In Java, boolean variables are initialized to false by default."
+            },
+            {
+                question: "Which keyword is used for inheritance in Java?",
+                options: ["implements", "inherits", "extends", "super"],
+                correctAnswer: 2,
+                explanation: "The 'extends' keyword is used for inheritance in Java."
+            },
+            {
+                question: "What is the size of int in Java?",
+                options: ["16 bits", "32 bits", "64 bits", "8 bits"],
+                correctAnswer: 1,
+                explanation: "In Java, int is 32 bits (4 bytes) in size."
+            }
+        ];
+
+        // Quick test templates
+        function fillTestTemplate(type) {
+            const templates = {
+                'quiz': {
+                    title: 'Quick Quiz - ',
+                    duration: 15,
+                    type: 'quiz'
+                },
+                'midterm': {
+                    title: 'Midterm Exam - ',
+                    duration: 60,
+                    type: 'midterm'
+                },
+                'final': {
+                    title: 'Final Examination - ',
+                    duration: 120,
+                    type: 'final'
+                },
+                'practice': {
+                    title: 'Practice Test - ',
+                    duration: 45,
+                    type: 'quiz'
+                }
+            };
+            
+            const template = templates[type];
+            document.getElementById('testTitle').value = template.title;
+            document.getElementById('testDuration').value = template.duration;
+            document.getElementById('testType').value = template.type;
+            document.getElementById('testTitle').focus();
+        }
+
+        function addSampleQuestion() {
+            const randomQuestion = sampleQuestions[Math.floor(Math.random() * sampleQuestions.length)];
+            addNewQuestion(randomQuestion.question, randomQuestion.options, randomQuestion.correctAnswer, randomQuestion.explanation);
+        }
+        
+        function addNewQuestion(questionText = '', options = ['', '', '', ''], correctAnswer = 0, explanation = '') {
+            questionCount++;
+            const container = document.getElementById('questionsContainer');
+            const newQuestion = document.createElement('div');
+            newQuestion.className = 'question-item';
+            newQuestion.innerHTML = `
+                <div class="question-header">
+                    <h4>Question ${questionCount}</h4>
+                    <button type="button" class="btn btn-small btn-danger" onclick="removeQuestion(this)">🗑️ Remove</button>
+                </div>
+                <div class="form-group">
+                    <label>Question Text</label>
+                    <input type="text" class="question-text" value="${questionText}" required placeholder="Enter your question">
+                </div>
+                <div class="options-group">
+                    <div class="option-item">
+                        <label>A)</label>
+                        <input type="text" class="option" value="${options[0]}" placeholder="Option A" required>
+                    </div>
+                    <div class="option-item">
+                        <label>B)</label>
+                        <input type="text" class="option" value="${options[1]}" placeholder="Option B" required>
+                    </div>
+                    <div class="option-item">
+                        <label>C)</label>
+                        <input type="text" class="option" value="${options[2]}" placeholder="Option C" required>
+                    </div>
+                    <div class="option-item">
+                        <label>D)</label>
+                        <input type="text" class="option" value="${options[3]}" placeholder="Option D" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>✅ Correct Answer</label>
+                    <select class="correct-answer" required>
+                        <option value="0" ${correctAnswer === 0 ? 'selected' : ''}>Option A</option>
+                        <option value="1" ${correctAnswer === 1 ? 'selected' : ''}>Option B</option>
+                        <option value="2" ${correctAnswer === 2 ? 'selected' : ''}>Option C</option>
+                        <option value="3" ${correctAnswer === 3 ? 'selected' : ''}>Option D</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>💡 Explanation (Optional)</label>
+                    <textarea class="question-explanation" placeholder="Explain why this is the correct answer..." rows="2">${explanation}</textarea>
+                </div>
+            `;
+            container.appendChild(newQuestion);
+            
+            // Smooth scroll to new question
+            newQuestion.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+        
+        function removeQuestion(button) {
+            if (document.querySelectorAll('.question-item').length > 1) {
+                button.closest('.question-item').remove();
+                updateQuestionNumbers();
+            } else {
+                alert('A test must have at least one question!');
+            }
+        }
+        
+        function updateQuestionNumbers() {
+            const questions = document.querySelectorAll('.question-item');
+            questions.forEach((question, index) => {
+                question.querySelector('h4').textContent = `Question ${index + 1}`;
+            });
+            questionCount = questions.length;
+        }
+
+        function saveAsDraft() {
+            const questions = Array.from(document.querySelectorAll('.question-item')).map(item => ({
+                question: item.querySelector('.question-text').value,
+                options: Array.from(item.querySelectorAll('.option')).map(o => o.value),
+                correctAnswer: parseInt(item.querySelector('.correct-answer').value),
+                explanation: item.querySelector('.question-explanation').value
+            }));
+            
+            const test = {
+                id: Date.now().toString(),
+                title: document.getElementById('testTitle').value,
+                duration: parseInt(document.getElementById('testDuration').value),
+                subject: document.getElementById('testSubject').value,
+                type: document.getElementById('testType').value,
+                instructions: document.getElementById('testInstructions').value,
+                questions,
+                createdBy: user.id,
+                createdDate: new Date().toISOString(),
+                semester: '3',
+                course: 'BCA',
+                status: 'draft'
+            };
+            
+            DataHandler.addTest(test);
+            alert('✅ Test saved as draft! You can publish it later from the tests page.');
+        }
+        
+        document.getElementById('addQuestionBtn').addEventListener('click', () => {
+            addNewQuestion();
+        });
+        
+        document.getElementById('createTestForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const questions = Array.from(document.querySelectorAll('.question-item')).map(item => ({
+                question: item.querySelector('.question-text').value,
+                options: Array.from(item.querySelectorAll('.option')).map(o => o.value),
+                correctAnswer: parseInt(item.querySelector('.correct-answer').value),
+                explanation: item.querySelector('.question-explanation').value
+            }));
+            
+            const test = {
+                id: Date.now().toString(),
+                title: document.getElementById('testTitle').value,
+                duration: parseInt(document.getElementById('testDuration').value),
+                subject: document.getElementById('testSubject').value,
+                type: document.getElementById('testType').value,
+                instructions: document.getElementById('testInstructions').value,
+                questions,
+                createdBy: user.id,
+                createdDate: new Date().toISOString(),
+                semester: '3',
+                course: 'BCA',
+                status: 'published'
+            };
+            
+            DataHandler.addTest(test);
+            alert('✅ Test created and published successfully!');
+            window.location.href = 'tests.html';
+        });
+
+        // Event Listeners
+        document.getElementById('menuBtn').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.add('active');
+        });
+
+        document.getElementById('closeSidebar').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.remove('active');
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            DataHandler.logout();
+            window.location.href = 'index.html';
+        });
+    </script>
+</body>
+</html>

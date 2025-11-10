@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Group Chat - Maharaja College</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="dashboard">
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2 id="portalTitle">📚 Portal</h2>
+                <button class="close-btn" id="closeSidebar">×</button>
+            </div>
+            <ul class="nav-menu" id="navMenu"></ul>
+        </nav>
+        <main class="main-content">
+            <header class="top-bar">
+                <button class="menu-btn" id="menuBtn">☰</button>
+                <h1>💬 Group Chat</h1>
+                <div class="user-info">
+                    <span id="userName">User</span>
+                </div>
+            </header>
+            <div class="content">
+                <div class="section">
+                    <div class="chat-container">
+                        <div class="chat-header">
+                            <h2>BCA Semester 3 - Group Chat</h2>
+                            <p>Chat with teachers and classmates</p>
+                        </div>
+                        
+                        <div class="chat-messages" id="chatMessages">
+                            <!-- Messages will be loaded here -->
+                        </div>
+                        
+                        <div class="chat-input">
+                            <input type="text" id="messageInput" placeholder="Type your message here..." maxlength="500">
+                            <button class="btn btn-primary" onclick="sendMessage()">📤 Send</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2>👥 Online Users</h2>
+                    <div id="onlineUsers" class="online-users-grid"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/dataHandler.js"></script>
+    <script>
+        const user = DataHandler.getCurrentUser();
+        if (!user || (user.type !== 'student' && user.type !== 'teacher')) {
+            window.location.href = 'index.html';
+        }
+        
+        const isTeacher = user.type === 'teacher';
+        document.getElementById('portalTitle').textContent = isTeacher ? '👨‍🏫 Teacher Portal' : '📚 Student Portal';
+        document.getElementById('userName').textContent = user.name;
+        
+        const navMenu = document.getElementById('navMenu');
+        const dashboardLink = isTeacher ? 'teacherDashboard.html' : 'studentDashboard.html';
+        navMenu.innerHTML = `
+            <li><a href="${dashboardLink}">📊 Dashboard</a></li>
+            <li><a href="materials.html">📚 Materials</a></li>
+            <li><a href="tests.html">📝 Tests</a></li>
+            <li><a href="performance.html">📈 Performance</a></li>
+            <li><a href="notices.html">📢 Notices</a></li>
+            <li><a href="chat.html" class="active">💬 Group Chat</a></li>
+            <li><a href="#" id="logoutBtn">🚪 Logout</a></li>
+        `;
+        
+        document.getElementById('logoutBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            DataHandler.logout();
+            window.location.href = 'index.html';
+        });
+
+        let messageInterval;
+
+        function loadMessages() {
+            const messages = DataHandler.getMessages();
+            const container = document.getElementById('chatMessages');
+            
+            if (messages.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-chat">
+                        <div class="empty-icon">💬</div>
+                        <h3>No messages yet</h3>
+                        <p>Start the conversation by sending a message!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = messages.map(msg => {
+                const isOwnMessage = msg.userId === user.id;
+                const messageClass = isOwnMessage ? 'sent' : 'received';
+                const userTypeIcon = msg.userType === 'teacher' ? '👨‍🏫' : '🎓';
+                
+                return `
+                    <div class="message ${messageClass}">
+                        <div class="message-header">
+                            <strong>${userTypeIcon} ${msg.userName}</strong>
+                            <span>${new Date(msg.timestamp).toLocaleTimeString()}</span>
+                        </div>
+                        <div class="message-content">${msg.content}</div>
+                        ${isOwnMessage ? `<small class="message-status">✓ Delivered</small>` : ''}
+                    </div>
+                `;
+            }).join('');
+
+            // Scroll to bottom
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function sendMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const content = messageInput.value.trim();
+            
+            if (!content) {
+                alert('Please enter a message!');
+                return;
+            }
+
+            if (content.length > 500) {
+                alert('Message too long! Maximum 500 characters.');
+                return;
+            }
+
+            const message = {
+                id: Date.now().toString(),
+                content: content,
+                userId: user.id,
+                userName: user.name,
+                userType: user.type,
+                timestamp: new Date().toISOString()
+            };
+
+            DataHandler.addMessage(message);
+            messageInput.value = '';
+            loadMessages();
+        }
+
+        function loadOnlineUsers() {
+            const users = DataHandler.getUsers().filter(u => u.type === 'student' || u.type === 'teacher');
+            const container = document.getElementById('onlineUsers');
+            
+            container.innerHTML = users.map(u => {
+                const userIcon = u.type === 'teacher' ? '👨‍🏫' : '🎓';
+                const isCurrentUser = u.id === user.id;
+                
+                return `
+                    <div class="online-user ${isCurrentUser ? 'current-user' : ''}">
+                        <div class="user-avatar">${userIcon}</div>
+                        <div class="user-info">
+                            <strong>${u.name}</strong>
+                            <span>${u.type === 'teacher' ? 'Teacher' : 'Student'}</span>
+                            ${isCurrentUser ? '<span class="online-status">You</span>' : '<span class="online-status">🟢 Online</span>'}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Auto-refresh messages every 5 seconds
+        function startMessagePolling() {
+            messageInterval = setInterval(loadMessages, 5000);
+        }
+
+        function stopMessagePolling() {
+            clearInterval(messageInterval);
+        }
+
+        // Event Listeners
+        document.getElementById('menuBtn').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.add('active');
+        });
+
+        document.getElementById('closeSidebar').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.remove('active');
+        });
+
+        document.getElementById('messageInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Initialize
+        loadMessages();
+        loadOnlineUsers();
+        startMessagePolling();
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', stopMessagePolling);
+
+        // Add CSS for chat styles
+        const style = document.createElement('style');
+        style.textContent = `
+            .empty-chat {
+                text-align: center;
+                padding: 40px;
+                color: #666;
+            }
+            .empty-icon {
+                font-size: 64px;
+                margin-bottom: 20px;
+            }
+            .message {
+                margin-bottom: 15px;
+                padding: 15px;
+                border-radius: 15px;
+                max-width: 70%;
+                animation: fadeIn 0.5s ease-out;
+            }
+            .message.sent {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                margin-left: auto;
+                border-bottom-right-radius: 5px;
+            }
+            .message.received {
+                background: white;
+                color: #333;
+                border-bottom-left-radius: 5px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            }
+            .message-header {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 8px;
+                font-size: 12px;
+                opacity: 0.8;
+            }
+            .message-content {
+                line-height: 1.4;
+            }
+            .message-status {
+                font-size: 10px;
+                opacity: 0.7;
+                margin-top: 5px;
+                display: block;
+            }
+            .online-users-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                gap: 15px;
+            }
+            .online-user {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 15px;
+                background: #f8f9fa;
+                border-radius: 10px;
+                transition: all 0.3s ease;
+            }
+            .online-user:hover {
+                background: #e8f4fd;
+                transform: translateY(-2px);
+            }
+            .online-user.current-user {
+                background: #667eea;
+                color: white;
+            }
+            .user-avatar {
+                font-size: 24px;
+            }
+            .user-info {
+                flex: 1;
+            }
+            .user-info strong {
+                display: block;
+                margin-bottom: 2px;
+            }
+            .user-info span {
+                font-size: 12px;
+                opacity: 0.8;
+            }
+            .online-status {
+                font-size: 10px;
+                color: #27ae60;
+            }
+            .current-user .online-status {
+                color: white;
+            }
+
+            @media (max-width: 768px) {
+                .message {
+                    max-width: 85%;
+                }
+                .online-users-grid {
+                    grid-template-columns: 1fr;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
