@@ -1,4 +1,4 @@
-// js/app.js - COMBINED ALL JAVASCRIPT
+// js/app.js - FINAL COMBINED VERSION
 console.log('🚀 Loading Maharaja College System...');
 
 // ==================== DATAHANDLER.JS ====================
@@ -40,6 +40,18 @@ class DataHandler {
                     password: 'hashed_password',
                     type: 'admin',
                     joinDate: '2020-01-01'
+                },
+                {
+                    id: '4',
+                    name: 'Demo Student',
+                    email: 'demo@maharajacollege.ac.in',
+                    password: 'hashed_password',
+                    type: 'student',
+                    rollNumber: 'BCA23000',
+                    semester: '3',
+                    course: 'BCA',
+                    dob: '2000-01-01',
+                    joinDate: '2023-07-01'
                 }
             ],
             'school_student_profiles': [],
@@ -76,7 +88,7 @@ class DataHandler {
         console.log('🎉 Data initialization complete');
     }
 
-    // Getters
+    // ==================== GETTER METHODS ====================
     static getCurrentUser() {
         return JSON.parse(localStorage.getItem('currentUser') || 'null');
     }
@@ -137,12 +149,39 @@ class DataHandler {
         return JSON.parse(localStorage.getItem('school_activities') || '[]');
     }
 
-    // Adders
+    // ==================== ADD/CREATE METHODS ====================
     static addUser(user) {
         const users = this.getUsers();
         users.push(user);
         this.saveToStorage('school_users', users);
         return user;
+    }
+
+    static createUser(userData) {
+        const users = this.getUsers();
+        
+        // Check if user already exists
+        const existingUser = users.find(u => 
+            u.email === userData.email || 
+            (u.type === 'student' && u.rollNumber === userData.rollNumber)
+        );
+        
+        if (existingUser) {
+            throw new Error('User already exists with this email or roll number');
+        }
+        
+        // Add required fields
+        const newUser = {
+            id: Date.now().toString(),
+            ...userData,
+            joinDate: new Date().toISOString().split('T')[0],
+            password: 'hashed_password'
+        };
+        
+        users.push(newUser);
+        this.saveToStorage('school_users', users);
+        console.log('👤 User created:', newUser.name);
+        return newUser;
     }
 
     static addStudentProfile(profile) {
@@ -164,6 +203,35 @@ class DataHandler {
         notices.push(notice);
         this.saveToStorage('school_notices', notices);
         return notice;
+    }
+
+    static addTest(test) {
+        const tests = this.getTests();
+        tests.push(test);
+        this.saveToStorage('school_tests', tests);
+        return test;
+    }
+
+    static addSubmission(submission) {
+        const submissions = this.getSubmissions();
+        submissions.push(submission);
+        this.saveToStorage('school_submissions', submissions);
+        return submission;
+    }
+
+    static addMessage(message) {
+        const messages = this.getMessages();
+        messages.push(message);
+        this.saveToStorage('school_messages', messages);
+        console.log('💬 Message added:', message.content);
+        return message;
+    }
+
+    static addActivity(activity) {
+        const activities = this.getActivities();
+        activities.push(activity);
+        this.saveToStorage('school_activities', activities);
+        return activity;
     }
 
     static markAttendance(attendance) {
@@ -190,7 +258,69 @@ class DataHandler {
         return record;
     }
 
-    // Utility
+    // ==================== UPDATE METHODS ====================
+    static updateUser(userId, updates) {
+        const users = this.getUsers();
+        const userIndex = users.findIndex(u => u.id === userId);
+        
+        if (userIndex === -1) {
+            throw new Error('User not found');
+        }
+        
+        // Prevent modifying demo users
+        const demoUsers = ['Rahul Sharma', 'Dr. Sunita Verma', 'Admin User', 'Demo Student'];
+        if (demoUsers.includes(users[userIndex].name)) {
+            throw new Error('Cannot modify demo accounts');
+        }
+        
+        users[userIndex] = { ...users[userIndex], ...updates };
+        this.saveToStorage('school_users', users);
+        return users[userIndex];
+    }
+
+    static updateFeePayment(recordId, paymentData) {
+        const records = this.getFeeRecords();
+        const index = records.findIndex(r => r.id === recordId);
+        
+        if (index !== -1) {
+            if (!records[index].payments) {
+                records[index].payments = [];
+            }
+            
+            records[index].payments.push(paymentData);
+            records[index].paidAmount = (records[index].paidAmount || 0) + paymentData.amount;
+            records[index].balance = records[index].totalAmount - records[index].paidAmount;
+            records[index].status = records[index].balance === 0 ? 'Paid' : 
+                                  records[index].paidAmount > 0 ? 'Partial' : 'Pending';
+            
+            this.saveToStorage('school_fee_management', records);
+            return records[index];
+        }
+        return null;
+    }
+
+    // ==================== DELETE METHODS ====================
+    static deleteUser(userId) {
+        const users = this.getUsers();
+        const user = users.find(u => u.id === userId);
+        
+        if (!user) {
+            throw new Error('User not found');
+        }
+        
+        // Prevent deleting demo users
+        const demoUsers = ['Rahul Sharma', 'Dr. Sunita Verma', 'Admin User', 'Demo Student'];
+        if (demoUsers.includes(user.name)) {
+            throw new Error('Cannot delete demo accounts');
+        }
+        
+        const filteredUsers = users.filter(u => u.id !== userId);
+        this.saveToStorage('school_users', filteredUsers);
+        console.log('🗑️ User deleted:', user.name);
+        return true;
+    }
+
+    // ==================== UTILITY METHODS ====================
     static saveToStorage(key, data) {
         localStorage.setItem(key, JSON.stringify(data));
     }
@@ -216,7 +346,21 @@ class DataHandler {
         URL.revokeObjectURL(url);
     }
 
-    // Debug method
+    // ==================== DEMO ACCOUNT PROTECTION ====================
+    static isDemoUser(userId) {
+        const users = this.getUsers();
+        const user = users.find(u => u.id === userId);
+        const demoUsers = ['Rahul Sharma', 'Dr. Sunita Verma', 'Admin User', 'Demo Student'];
+        return user ? demoUsers.includes(user.name) : false;
+    }
+
+    static getDemoUsers() {
+        const users = this.getUsers();
+        const demoUsers = ['Rahul Sharma', 'Dr. Sunita Verma', 'Admin User', 'Demo Student'];
+        return users.filter(u => demoUsers.includes(u.name));
+    }
+
+    // ==================== DEBUG METHODS ====================
     static debugData() {
         console.log('=== DATA DEBUG INFO ===');
         const keys = Object.keys(localStorage);
@@ -230,6 +374,27 @@ class DataHandler {
         });
         console.log('=== END DEBUG INFO ===');
         alert('Check browser console for debug info!');
+    }
+
+    static importUserData(jsonData) {
+        const users = this.getUsers();
+        const importedUsers = jsonData.map(student => ({
+            id: Date.now().toString() + Math.random(),
+            name: student.name,
+            email: student.email || `${student.rollNumber?.toLowerCase()}@maharajacollege.ac.in`,
+            password: 'hashed_default_password',
+            type: 'student',
+            rollNumber: student.rollNumber,
+            semester: student.semester || '3',
+            course: student.course || 'BCA',
+            phone: student.phone,
+            dob: student.dob,
+            joinDate: new Date().toISOString().split('T')[0]
+        }));
+        
+        users.push(...importedUsers);
+        this.saveToStorage('school_users', users);
+        return importedUsers;
     }
 }
 
@@ -310,99 +475,4 @@ console.log('✅ System ready!');
 
 // Make classes globally available
 window.DataHandler = DataHandler;
-
 window.Auth = Auth;
-
-// ==================== MESSAGE FUNCTIONS ====================
-DataHandler.addMessage = function(message) {
-    const messages = this.getMessages();
-    messages.push(message);
-    this.saveToStorage('school_messages', messages);
-    console.log('💬 Message added:', message.content);
-    return message;
-};
-
-DataHandler.getAllMessages = function() {
-    return this.getMessages();
-};
-
-// ==================== USER MANAGEMENT FUNCTIONS ====================
-DataHandler.createUser = function(userData) {
-    const users = this.getUsers();
-    
-    // Check if user already exists
-    const existingUser = users.find(u => 
-        u.email === userData.email || 
-        (u.type === 'student' && u.rollNumber === userData.rollNumber)
-    );
-    
-    if (existingUser) {
-        throw new Error('User already exists with this email or roll number');
-    }
-    
-    // Add required fields
-    const newUser = {
-        id: Date.now().toString(),
-        ...userData,
-        joinDate: new Date().toISOString().split('T')[0],
-        password: 'hashed_password' // Default password
-    };
-    
-    users.push(newUser);
-    this.saveToStorage('school_users', users);
-    console.log('👤 User created:', newUser.name);
-    return newUser;
-};
-
-DataHandler.updateUser = function(userId, updates) {
-    const users = this.getUsers();
-    const userIndex = users.findIndex(u => u.id === userId);
-    
-    if (userIndex === -1) {
-        throw new Error('User not found');
-    }
-    
-    // Prevent modifying demo users
-    const demoUsers = ['Rahul Sharma', 'Dr. Sunita Verma', 'Admin User', 'Demo Student'];
-    if (demoUsers.includes(users[userIndex].name)) {
-        throw new Error('Cannot modify demo accounts');
-    }
-    
-    users[userIndex] = { ...users[userIndex], ...updates };
-    this.saveToStorage('school_users', users);
-    return users[userIndex];
-};
-
-DataHandler.deleteUser = function(userId) {
-    const users = this.getUsers();
-    const user = users.find(u => u.id === userId);
-    
-    if (!user) {
-        throw new Error('User not found');
-    }
-    
-    // Prevent deleting demo users
-    const demoUsers = ['Rahul Sharma', 'Dr. Sunita Verma', 'Admin User', 'Demo Student'];
-    if (demoUsers.includes(user.name)) {
-        throw new Error('Cannot delete demo accounts');
-    }
-    
-    const filteredUsers = users.filter(u => u.id !== userId);
-    this.saveToStorage('school_users', filteredUsers);
-    console.log('🗑️ User deleted:', user.name);
-    return true;
-};
-
-// ==================== DEMO ACCOUNT PROTECTION ====================
-DataHandler.isDemoUser = function(userId) {
-    const users = this.getUsers();
-    const user = users.find(u => u.id === userId);
-    const demoUsers = ['Rahul Sharma', 'Dr. Sunita Verma', 'Admin User', 'Demo Student'];
-    return user ? demoUsers.includes(user.name) : false;
-};
-
-DataHandler.getDemoUsers = function() {
-    const users = this.getUsers();
-    const demoUsers = ['Rahul Sharma', 'Dr. Sunita Verma', 'Admin User', 'Demo Student'];
-    return users.filter(u => demoUsers.includes(u.name));
-};
