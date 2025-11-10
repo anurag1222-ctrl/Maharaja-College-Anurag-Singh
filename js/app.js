@@ -310,4 +310,99 @@ console.log('✅ System ready!');
 
 // Make classes globally available
 window.DataHandler = DataHandler;
+
 window.Auth = Auth;
+
+// ==================== MESSAGE FUNCTIONS ====================
+DataHandler.addMessage = function(message) {
+    const messages = this.getMessages();
+    messages.push(message);
+    this.saveToStorage('school_messages', messages);
+    console.log('💬 Message added:', message.content);
+    return message;
+};
+
+DataHandler.getAllMessages = function() {
+    return this.getMessages();
+};
+
+// ==================== USER MANAGEMENT FUNCTIONS ====================
+DataHandler.createUser = function(userData) {
+    const users = this.getUsers();
+    
+    // Check if user already exists
+    const existingUser = users.find(u => 
+        u.email === userData.email || 
+        (u.type === 'student' && u.rollNumber === userData.rollNumber)
+    );
+    
+    if (existingUser) {
+        throw new Error('User already exists with this email or roll number');
+    }
+    
+    // Add required fields
+    const newUser = {
+        id: Date.now().toString(),
+        ...userData,
+        joinDate: new Date().toISOString().split('T')[0],
+        password: 'hashed_password' // Default password
+    };
+    
+    users.push(newUser);
+    this.saveToStorage('school_users', users);
+    console.log('👤 User created:', newUser.name);
+    return newUser;
+};
+
+DataHandler.updateUser = function(userId, updates) {
+    const users = this.getUsers();
+    const userIndex = users.findIndex(u => u.id === userId);
+    
+    if (userIndex === -1) {
+        throw new Error('User not found');
+    }
+    
+    // Prevent modifying demo users
+    const demoUsers = ['Rahul Sharma', 'Dr. Sunita Verma', 'Admin User', 'Demo Student'];
+    if (demoUsers.includes(users[userIndex].name)) {
+        throw new Error('Cannot modify demo accounts');
+    }
+    
+    users[userIndex] = { ...users[userIndex], ...updates };
+    this.saveToStorage('school_users', users);
+    return users[userIndex];
+};
+
+DataHandler.deleteUser = function(userId) {
+    const users = this.getUsers();
+    const user = users.find(u => u.id === userId);
+    
+    if (!user) {
+        throw new Error('User not found');
+    }
+    
+    // Prevent deleting demo users
+    const demoUsers = ['Rahul Sharma', 'Dr. Sunita Verma', 'Admin User', 'Demo Student'];
+    if (demoUsers.includes(user.name)) {
+        throw new Error('Cannot delete demo accounts');
+    }
+    
+    const filteredUsers = users.filter(u => u.id !== userId);
+    this.saveToStorage('school_users', filteredUsers);
+    console.log('🗑️ User deleted:', user.name);
+    return true;
+};
+
+// ==================== DEMO ACCOUNT PROTECTION ====================
+DataHandler.isDemoUser = function(userId) {
+    const users = this.getUsers();
+    const user = users.find(u => u.id === userId);
+    const demoUsers = ['Rahul Sharma', 'Dr. Sunita Verma', 'Admin User', 'Demo Student'];
+    return user ? demoUsers.includes(user.name) : false;
+};
+
+DataHandler.getDemoUsers = function() {
+    const users = this.getUsers();
+    const demoUsers = ['Rahul Sharma', 'Dr. Sunita Verma', 'Admin User', 'Demo Student'];
+    return users.filter(u => demoUsers.includes(u.name));
+};
