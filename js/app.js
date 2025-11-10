@@ -52,6 +52,18 @@ class DataHandler {
                     course: 'BCA',
                     dob: '2000-01-01',
                     joinDate: '2023-07-01'
+                },
+                {
+                    id: '5',
+                    name: 'Adarsh',
+                    email: 'maharajacollege.ac.in',
+                    password: 'hashed_password',
+                    type: 'student',
+                    rollNumber: 'BCA23000',
+                    semester: '3',
+                    course: 'BCA',
+                    dob: '2000-01-01',
+                    joinDate: '2023-07-01'
                 }
             ],
             'school_student_profiles': [],
@@ -476,3 +488,4 @@ console.log('✅ System ready!');
 // Make classes globally available
 window.DataHandler = DataHandler;
 window.Auth = Auth;
+
